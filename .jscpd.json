@@ -1,0 +1,15 @@
+{
+  "threshold": 1.5,
+  "minLines": 5,
+  "minTokens": 50,
+  "reporters": ["console"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/public/**",
+    "**/data/**",
+    "reports/**",
+    "**/*.md",
+    "bun.lock",
+    "package.json"
+  ]
+}

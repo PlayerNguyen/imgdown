@@ -1,0 +1,9 @@
+node_modules/
+**/node_modules/
+**/data/
+apps/imgdown/public/app.js
+apps/imgdown/public/app.js.map
+apps/imgdown/public/styles.css
+reports/
+*.log
+.DS_Store
