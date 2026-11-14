@@ -41,7 +41,7 @@ bun run start        # production: build minified + chạy server
 
 ```bash
 bun check            # type check bằng Bun (thay cho tsc)
-bun run lint         # oxlint + ESLint JSDoc gate (errors fail, warnings reported)
+bun run lint         # oxlint (errors fail, warnings reported)
 bun test             # unit test bằng bun:test
 bun run dup          # jscpd, threshold < 1.5%
 bun run build        # client bundle + Tailwind CSS
@@ -49,7 +49,7 @@ bun run build        # client bundle + Tailwind CSS
 
 ## JSDoc
 
-Toàn bộ JSDoc dùng tiếng Anh. Oxlint 1.93 hỗ trợ `require-param`, `require-param-description`, `require-returns`, `require-returns-description`, `check-tag-names`, `empty-tags`; ba rule còn lại (`require-jsdoc`, `require-description`, `check-param-names`) chưa có trong bản Oxlint hiện tại nên được kiểm tra bằng `eslint.config.mjs` trong cùng lệnh `bun run lint`.
+Toàn bộ JSDoc dùng tiếng Anh. Oxlint 1.93 hỗ trợ sẵn `require-param`, `require-param-description`, `require-returns`, `require-returns-description`, `check-tag-names`, `empty-tags`. Ba rule còn lại (`require-jsdoc`, `require-description`, `check-param-names`) được nạp qua `jsPlugins` của Oxlint bằng `eslint-plugin-jsdoc` (alias `jsdoc-js`) — vẫn chạy trong `bun run lint`, không cần ESLint CLI.
 
 ## Biến môi trường
 

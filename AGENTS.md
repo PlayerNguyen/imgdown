@@ -19,7 +19,7 @@ Run all of these before considering a task complete:
 
 ```bash
 bun check          # Bun's TypeScript 7 checker (do not use tsc)
-bun run lint       # oxlint + ESLint JSDoc gate (errors fail, warnings reported)
+bun run lint       # oxlint (errors fail, warnings reported)
 bun test           # bun:test unit tests
 bun run dup        # jscpd duplication threshold < 1.5%
 bun run build      # Bun client bundle + Tailwind CSS
@@ -38,7 +38,7 @@ Do not use `tsc --noEmit`.
    */
   export function getBatch(id: string): BatchDTO | null { ... }
   ```
-  Oxlint 1.93 implements most JSDoc rules; `jsdoc/require-jsdoc`, `require-description` and `check-param-names` are enforced through the ESLint JSDoc gate in `eslint.config.mjs` because Oxlint does not ship them yet.
+  Oxlint 1.93 implements most JSDoc rules natively; the remaining `require-jsdoc`, `require-description` and `check-param-names` rules run through `jsPlugins` using `eslint-plugin-jsdoc` aliased as `jsdoc-js` in `.oxlintrc.json`.
 - No `any`. Prefer `unknown` and narrowing.
 - Keep strict TypeScript; do not weaken `tsconfig.json`.
 - Use Bun APIs (`Bun.serve`, `Bun.file`, `Bun.Image`, `bun:sqlite`, `bun:test`).

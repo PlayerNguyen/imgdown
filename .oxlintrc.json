@@ -90,7 +90,22 @@
     "jsdoc/require-returns": "error",
     "jsdoc/require-returns-description": "error",
     "jsdoc/check-tag-names": "error",
-    "jsdoc/empty-tags": "error"
+    "jsdoc/empty-tags": "error",
+    "jsdoc-js/require-jsdoc": [
+      "error",
+      {
+        "publicOnly": true,
+        "require": {
+          "FunctionDeclaration": true,
+          "FunctionExpression": true,
+          "ArrowFunctionExpression": true,
+          "ClassDeclaration": true,
+          "MethodDefinition": true
+        }
+      }
+    ],
+    "jsdoc-js/require-description": "error",
+    "jsdoc-js/check-param-names": "error"
   },
   "overrides": [
     {
@@ -127,5 +142,11 @@
     "node_modules/**",
     "apps/imgdown/public/**",
     "**/data/**"
+  ],
+  "jsPlugins": [
+    {
+      "name": "jsdoc-js",
+      "specifier": "eslint-plugin-jsdoc"
+    }
   ]
 }
