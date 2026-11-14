@@ -1,17 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
   DEFAULT_SETTINGS,
-  assertFormatAvailable,
   extensionFor,
   normalizeSettings,
   resolveFormat,
   sanitizeSuffix,
 } from "../src/settings";
 import { LIMITS } from "../src/image";
-import { formatBytes, parseLocale, savedPercent, settingsSummary, translate } from "@imgdown/shared";
 
-const linuxCaps = { avif: false, heic: false, note: "no system codecs" };
-const macCaps = { avif: true, heic: true, note: null };
+const linuxCaps = { avif: false, heic: false };
+const macCaps = { avif: true, heic: true };
 
 describe("normalizeSettings", () => {
   test("fills defaults and clamps values", () => {
@@ -68,35 +66,13 @@ describe("format resolution", () => {
     expect(extensionFor("avif")).toBe("avif");
   });
 
-  test("unavailable formats are rejected early", () => {
-    expect(() => assertFormatAvailable({ ...DEFAULT_SETTINGS, format: "avif" }, linuxCaps)).toThrow(/AVIF/);
-    expect(() => assertFormatAvailable({ ...DEFAULT_SETTINGS, format: "heic" }, linuxCaps)).toThrow(/HEIC/);
-    expect(() => assertFormatAvailable({ ...DEFAULT_SETTINGS, format: "webp" }, linuxCaps)).not.toThrow();
-  });
 });
 
-describe("limits and formatting", () => {
+describe("limits", () => {
   test("the batch budget is 100 files and 1 GB", () => {
     expect(LIMITS.maxFiles).toBe(100);
     expect(LIMITS.maxTotalMB).toBe(1024);
     expect(LIMITS.maxFileMB).toBe(60);
   });
 
-  test("formats sizes, savings and metadata summaries", () => {
-    expect(formatBytes(1024)).toBe("1 KB");
-    expect(savedPercent(1000, 250)).toBe(75);
-    expect(settingsSummary({ ...DEFAULT_SETTINGS, keepMetadata: true })).toContain("EXIF");
-    expect(settingsSummary({ ...DEFAULT_SETTINGS, keepMetadata: false })).not.toContain("EXIF");
-  });
-
-  test("translates messages and falls back to English", () => {
-    expect(parseLocale("vi")).toBe("vi");
-    expect(parseLocale("fr")).toBe("en");
-    expect(translate("en", "status.done")).toBe("Done");
-    expect(translate("vi", "status.done")).toBe("Hoàn tất");
-    expect(translate("en", "home.compressCta", { count: 3 })).toBe(
-      "Compress 3 images & download ZIP",
-    );
-    expect(translate("en", "history.days", { count: 7 })).toBe("7 days");
-  });
 });

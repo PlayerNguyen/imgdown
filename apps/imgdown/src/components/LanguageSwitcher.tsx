@@ -1,4 +1,5 @@
-import { LOCALES, LOCALE_LABELS, type Locale } from "@imgdown/shared";
+import type { Locale } from "@imgdown/shared";
+import { LOCALES, LOCALE_LABELS } from "../lib/messages";
 import { LanguageIcon } from "./Icons";
 import { useI18n } from "../lib/i18n";
 

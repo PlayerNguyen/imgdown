@@ -6,7 +6,7 @@ ImgDown is a Bun + React SSR image compressor, organised as a monorepo:
 
 ```
 apps/imgdown/     Bun server, React SSR client, Tailwind UI, build scripts
-packages/shared/  Domain types + formatting helpers (server & browser)
+packages/shared/  Domain types + text utilities (server & browser)
 packages/media/   Bun.Image pipeline, EXIF, ZIP writer, settings validation
 packages/db/      bun:sqlite schema/queries + storage cleanup
 ```
@@ -43,18 +43,19 @@ Do not use `tsc --noEmit`.
 - Keep strict TypeScript; do not weaken `tsconfig.json`.
 - Use Bun APIs (`Bun.serve`, `Bun.file`, `Bun.Image`, `bun:sqlite`, `bun:test`).
 - Tailwind CSS v4 only. Custom component classes live in `apps/imgdown/src/styles.css` via `@apply`; do not add a second stylesheet.
-- SSR must be deterministic: no `Date.now()`, `Math.random()` or client-only branching during render. Use `packages/shared/src/format.ts` for locale/time formatting.
+- SSR must be deterministic: no `Date.now()`, `Math.random()` or client-only branching during render. Use `apps/imgdown/src/lib/format.ts` for locale/time formatting.
 - Validate all client input server-side. Never trust filenames, MIME types or extensions; `Bun.Image` sniffs bytes.
 - SQLite access stays in `packages/db`. Use prepared statements and transactions for multi-row writes.
 - Batch limits: `MAX_FILES` (100), `MAX_FILE_MB` (60), `MAX_TOTAL_MB` (1024). Enforce both client and server.
 - ZIP names must be sanitized; prevent traversal and duplicate entries.
 - Preserve EXIF only for JPEG/WebP/PNG, reset Orientation to 1, strip GPS unless `keepLocation` is enabled.
 - Do not log image bytes or personal filenames.
+- **No user-facing labels or localized copy inside `packages/`.** Packages expose classes, types, codes and structured errors; labels, formatters and translations live under `apps/imgdown` (`src/lib/messages.ts`, `src/lib/format.ts`, `server/i18n.ts`).
 
 ## UI conventions
 
 - Vietnamese labels, friendly tone, accessible focus states, `aria-label` on icon-only buttons.
-- Reuse `Shell`, `SettingsPanel`, `BatchStatusBadge`, `ItemMeta` and shared formatters; do not duplicate status label maps.
+- Reuse `Shell`, `SettingsPanel`, `BatchStatusBadge`, `ItemMeta` and the formatters in `apps/imgdown/src/lib/format.ts`; do not duplicate status label maps.
 - Use `react-icons/lu` via the wrappers in `src/components/Icons.tsx`; the gradient `LogoMark` brand asset stays custom.
 - Keep drag/drop, paste, keyboard and mobile flows working.
 - Use Tailwind utilities for layout, custom classes only for repeated component styling.

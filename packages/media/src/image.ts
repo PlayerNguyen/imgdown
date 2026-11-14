@@ -45,14 +45,8 @@ export function getCapabilities(): Promise<Capabilities> {
 
 async function detectCapabilities(): Promise<Capabilities> {
   const [avif, heic] = await Promise.all([probeFormat("avif"), probeFormat("heic")]);
-  return {
-    avif,
-    heic,
-    note:
-      avif || heic
-        ? null
-        : "This server has no system codecs for AVIF/HEIC, so those two formats are disabled. WebP, JPEG and PNG are always available.",
-  };
+  return { avif, heic };
+
 }
 
 async function probeFormat(format: "avif" | "heic"): Promise<boolean> {
@@ -72,15 +66,23 @@ export type ImageMeta = {
   format: string;
 };
 
+export type ImageValidationCode = "max-pixels" | "unsupported-format" | "invalid-image";
+
 /** Error thrown when an uploaded image cannot be decoded. */
 export class ImageValidationError extends Error {
+  readonly code: ImageValidationCode;
+  readonly maxPixelsMP?: number;
+
   /**
-   * Creates a validation error with a user-facing message.
-   * @param message - Human-readable error message.
+   * Creates an image validation error with a machine-readable code.
+   * @param code - Failure category used by the app layer for localization.
+   * @param maxPixelsMP - Configured megapixel limit for `max-pixels` errors.
    */
-  constructor(message: string) {
-    super(message);
+  constructor(code: ImageValidationCode, maxPixelsMP?: number) {
+    super(code);
     this.name = "ImageValidationError";
+    this.code = code;
+    this.maxPixelsMP = maxPixelsMP;
   }
 }
 
@@ -97,16 +99,12 @@ export async function inspectImage(data: Uint8Array): Promise<ImageMeta> {
   } catch (error: unknown) {
     const code = (error as { code?: string }).code;
     if (code === "ERR_IMAGE_MAX_PIXELS") {
-      throw new ImageValidationError(
-        `Image exceeds the ${MAX_PIXELS_MP} megapixel limit. Downscale it before uploading.`,
-      );
+      throw new ImageValidationError("max-pixels", MAX_PIXELS_MP);
     }
     if (code === "ERR_IMAGE_FORMAT_UNSUPPORTED") {
-      throw new ImageValidationError("This image format is not supported on the server.");
+      throw new ImageValidationError("unsupported-format");
     }
-    throw new ImageValidationError(
-      "This file could not be read as a valid image (JPEG, PNG, WebP, GIF, BMP, TIFF are supported).",
-    );
+    throw new ImageValidationError("invalid-image");
   }
 }
 
@@ -257,18 +255,4 @@ export async function writeThumbnail(data: Uint8Array, targetPath: string, size 
     .resize(size, size, { fit: "inside", withoutEnlargement: true })
     .webp({ quality: 72 })
     .write(targetPath);
-}
-
-/**
- * Converts pipeline errors into user-facing messages.
- * @param error - The caught error.
- * @returns A user-facing error message.
- */
-export function formatError(error: unknown): string {
-  if (error instanceof ImageValidationError) return error.message;
-  const code = (error as { code?: string }).code;
-  if (code === "ERR_IMAGE_FORMAT_UNSUPPORTED") return "This format is not supported on the server.";
-  if (code === "ERR_IMAGE_DECODE_FAILED") return "The image is corrupt or could not be decoded.";
-  if (error instanceof Error && error.message) return error.message;
-  return "This image could not be processed.";
 }

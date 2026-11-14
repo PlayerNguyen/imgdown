@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Capabilities, OutputFormat, Settings } from "@imgdown/shared";
-import { formatHint, formatName } from "@imgdown/shared";
+import { formatHint, formatName } from "../lib/format";
 import { CheckIcon, SlidersIcon } from "./Icons";
 import { useI18n } from "../lib/i18n";
 
@@ -79,7 +79,7 @@ export function SettingsPanel({
               );
             })}
           </div>
-          {capabilities.note ? (
+          {!capabilities.avif && !capabilities.heic ? (
             <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">
               {t("settings.capabilityNote")}
             </p>

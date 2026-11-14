@@ -23,7 +23,7 @@ apps/
     public/             # built bundle + CSS (gitignored)
     scripts/build.ts
 packages/
-  shared/               # shared types, formatters and i18n messages
+  shared/               # shared types and text utilities
   media/                # Bun.Image pipeline, EXIF, ZIP, settings
   db/                   # SQLite schema/queries + cleanup
 ```
@@ -55,7 +55,8 @@ All JSDoc is written in English. Oxlint 1.93 supports `require-param`, `require-
 ## Internationalization
 
 - Supported locales: `en` (default) and `vi`.
-- Messages live in `packages/shared/src/i18n.ts`.
+- Messages live in `apps/imgdown/src/lib/messages.ts`; formatting lives in `apps/imgdown/src/lib/format.ts`.
+- Packages contain no user-facing copy: they expose types, structured errors and error codes only.
 - The server reads the `imgdown_locale` cookie, falls back to `DEFAULT_LOCALE`, and passes the resolved locale to the client through the SSR boot payload.
 - The language picker in the header updates the React tree immediately, persists the cookie and refreshes `lang`, `<title>` and the meta description without reloading the page.
 - Number, byte and date formatting are locale-aware. English dates use UTC and Vietnamese dates use `Asia/Ho_Chi_Minh` so SSR output stays deterministic.

@@ -587,11 +587,14 @@ export function allBatchRows(): BatchRow[] {
   return db.query<BatchRow, []>("SELECT * FROM batches").all();
 }
 
-/** Marks interrupted batches as failed after a server restart. */
-export function markStaleBatchesFailed(): void {
+/**
+ * Marks interrupted batches as failed after a server restart.
+ * @param message - Localized message supplied by the app layer.
+ */
+export function markStaleBatchesFailed(message: string): void {
   db.run(
     `UPDATE batches SET status = 'error', error = ?, finished_at = ?
      WHERE status IN ('queued', 'processing')`,
-    ["The server restarted while the batch was processing. Please try again.", Date.now()],
+    [message, Date.now()],
   );
 }

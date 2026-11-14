@@ -1,6 +1,6 @@
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { stripControlChars, type Settings } from "@imgdown/shared";
+import { stripControlChars, type Locale, type Settings } from "@imgdown/shared";
 import {
   THUMB_DIR,
   ZIP_DIR,
@@ -10,7 +10,8 @@ import {
   updateBatch,
   updateItem,
 } from "@imgdown/db";
-import { ZipWriter, compressImage, formatError, getCapabilities, writeThumbnail } from "@imgdown/media";
+import { ZipWriter, compressImage, getCapabilities, writeThumbnail } from "@imgdown/media";
+import { imageErrorMessage } from "./i18n";
 
 const CONCURRENCY = Math.min(4, Math.max(1, Number(process.env.IMAGE_CONCURRENCY) || 1));
 
@@ -35,8 +36,9 @@ function uniqueName(used: Set<string>, name: string, suffix: string, ext: string
 /**
  * Processes a queued batch, writes the ZIP and updates progress in SQLite.
  * @param batchId - Batch identifier.
+ * @param locale - Locale used for stored error messages.
  */
-export async function processBatch(batchId: string): Promise<void> {
+export async function processBatch(batchId: string, locale: Locale): Promise<void> {
   const batch = getBatchRow(batchId);
   if (!batch) return;
 
@@ -106,7 +108,7 @@ export async function processBatch(batchId: string): Promise<void> {
           totalOutput += result.bytes.length;
           done++;
         } catch (error) {
-          const message = formatError(error);
+          const message = imageErrorMessage(error, locale);
           firstError ??= message;
           failed++;
           updateItem(item.id, {

@@ -1,12 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import {
-  LOCALE_COOKIE,
-  translate,
-  type Locale,
-  type MessageKey,
-  type MessageVars,
-  type Page,
-} from "@imgdown/shared";
+import type { Locale, Page } from "@imgdown/shared";
+import { LOCALE_COOKIE, translate, type MessageKey, type MessageVars } from "./messages";
 
 type I18nContextValue = {
   locale: Locale;

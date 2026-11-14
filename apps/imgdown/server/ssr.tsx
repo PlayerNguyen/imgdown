@@ -1,6 +1,7 @@
 import { renderToString } from "react-dom/server";
 import { App } from "../src/App";
-import { translate, type BootData, type Locale } from "@imgdown/shared";
+import type { BootData, Locale } from "@imgdown/shared";
+import { translate } from "../src/lib/messages";
 
 function safeJson(data: unknown): string {
   return JSON.stringify(data)
