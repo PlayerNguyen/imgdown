@@ -16,8 +16,16 @@ import {
   ZipIcon,
 } from "../components/Icons";
 import { BatchStatusBadge, ItemMeta } from "../components/BatchBits";
-import { formatBytes, formatDate, formatDimensions, savedPercent, settingsSummary } from "@imgdown/shared";
+import {
+  formatBytes,
+  formatDate,
+  formatDimensions,
+  formatNumber,
+  savedPercent,
+  settingsSummary,
+} from "@imgdown/shared";
 import { api, errorMessage } from "../lib/client-api";
+import { useI18n } from "../lib/i18n";
 
 type Draft = {
   key: string;
@@ -46,6 +54,7 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 function DraftRow({ draft, onRemove }: { draft: Draft; onRemove: () => void }) {
+  const { locale, t } = useI18n();
   return (
     <li className="flex items-center gap-3 border-b border-slate-100 px-4 py-2.5 last:border-0">
       <div className="relative grid size-13 shrink-0 place-items-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-slate-400">
@@ -61,11 +70,13 @@ function DraftRow({ draft, onRemove }: { draft: Draft; onRemove: () => void }) {
           {draft.name}
         </p>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] tabular-nums text-slate-400">
-          <span>{formatBytes(draft.size)}</span>
+          <span>{formatBytes(draft.size, locale)}</span>
           {draft.asset ? <span>{formatDimensions(draft.asset.width, draft.asset.height)}</span> : null}
           {draft.asset ? <span className="format-tag">{draft.asset.format.toUpperCase()}</span> : null}
-          {draft.status === "uploading" ? <span>Đang tải {Math.round(draft.progress * 100)}%</span> : null}
-          {draft.status === "ready" ? <span className="font-medium text-emerald-600">Sẵn sàng</span> : null}
+          {draft.status === "uploading" ? (
+            <span>{t("home.uploadProgress", { percent: Math.round(draft.progress * 100) })}</span>
+          ) : null}
+          {draft.status === "ready" ? <span className="font-medium text-emerald-600">{t("home.ready")}</span> : null}
         </div>
         {draft.error ? <p className="mt-0.5 text-[11px] text-red-500">{draft.error}</p> : null}
         {draft.status === "uploading" ? <ProgressBar value={draft.progress * 100} /> : null}
@@ -73,7 +84,7 @@ function DraftRow({ draft, onRemove }: { draft: Draft; onRemove: () => void }) {
       <button
         type="button"
         className="grid size-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-        aria-label={`Xoá ${draft.name}`}
+        aria-label={t("home.removeAria", { name: draft.name })}
         onClick={onRemove}
       >
         <XIcon size={16} />
@@ -126,6 +137,7 @@ function BatchItemRow({
  * @returns The rendered React element.
  */
 export function HomePage({ boot }: { boot: BootData }) {
+  const { locale, t } = useI18n();
   const [settings, setSettings] = useState<Settings>(boot.settings);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [batch, setBatch] = useState<BatchDTO | null>(null);
@@ -184,13 +196,13 @@ export function HomePage({ boot }: { boot: BootData }) {
           patchDraft(draft.key, {
             status: "error",
             progress: 1,
-            error: payload?.error ?? "Tải ảnh lên thất bại.",
+            error: payload?.error ?? t("home.uploadFailed"),
           });
         }
         resolve();
       });
       xhr.addEventListener("error", () => {
-        patchDraft(draft.key, { status: "error", progress: 1, error: "Mất kết nối khi tải ảnh lên." });
+        patchDraft(draft.key, { status: "error", progress: 1, error: t("home.uploadOffline") });
         resolve();
       });
       const form = new FormData();
@@ -211,18 +223,18 @@ export function HomePage({ boot }: { boot: BootData }) {
 
   const addFiles = (files: File[]) => {
     if (batchIdRef.current) {
-      showToast("Lô hiện tại chưa kết thúc. Hãy tải ZIP hoặc bấm “Nén lô mới” trước.");
+      showToast(t("home.batchActive"));
       return;
     }
     if (!files.length) return;
 
     const remaining = boot.limits.maxFiles - draftsRef.current.length;
     if (remaining <= 0) {
-      showToast(`Mỗi lô tối đa ${boot.limits.maxFiles} ảnh.`);
+      showToast(t("home.maxFilesReached", { max: boot.limits.maxFiles }));
       return;
     }
     if (files.length > remaining) {
-      showToast(`Chỉ thêm ${remaining} ảnh nữa (tối đa ${boot.limits.maxFiles} ảnh mỗi lô).`);
+      showToast(t("home.onlyRemaining", { remaining, max: boot.limits.maxFiles }));
     }
 
     const maxBytes = boot.limits.maxFileMB * 1024 * 1024;
@@ -254,7 +266,7 @@ export function HomePage({ boot }: { boot: BootData }) {
           status: "error",
           progress: 1,
           asset: null,
-          error: "Tệp này không phải ảnh.",
+          error: t("home.notImage"),
         });
         acceptedCount++;
         continue;
@@ -269,7 +281,7 @@ export function HomePage({ boot }: { boot: BootData }) {
           status: "error",
           progress: 1,
           asset: null,
-          error: `Ảnh vượt giới hạn ${boot.limits.maxFileMB} MB.`,
+          error: t("home.tooLarge", { max: boot.limits.maxFileMB }),
         });
         acceptedCount++;
         continue;
@@ -284,7 +296,7 @@ export function HomePage({ boot }: { boot: BootData }) {
           status: "error",
           progress: 1,
           asset: null,
-          error: "Tệp rỗng.",
+          error: t("home.emptyFile"),
         });
         acceptedCount++;
         continue;
@@ -314,7 +326,10 @@ export function HomePage({ boot }: { boot: BootData }) {
 
     if (overTotal > 0) {
       showToast(
-        `Tổng dung lượng mỗi lô tối đa ${formatBytes(maxTotalBytes)}. ${overTotal} ảnh vượt giới hạn đã bị bỏ qua.`,
+        t("home.totalLimit", {
+          size: formatBytes(maxTotalBytes, locale),
+          count: overTotal,
+        }),
       );
     }
 
@@ -384,7 +399,7 @@ export function HomePage({ boot }: { boot: BootData }) {
 
     const tick = async () => {
       try {
-        const data = await api<{ batch: BatchDTO }>(`/api/batches/${batchId}`);
+        const data = await api<{ batch: BatchDTO }>(`/api/batches/${batchId}`, undefined, locale);
         if (cancelled) return;
         setBatch(data.batch);
 
@@ -417,13 +432,13 @@ export function HomePage({ boot }: { boot: BootData }) {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [batchId]);
+  }, [batchId, locale]);
 
   const updateSettings = (next: Settings) => {
     setSettings(next);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      api("/api/settings", { method: "POST", body: JSON.stringify(next) }).catch(() => {});
+      api("/api/settings", { method: "POST", body: JSON.stringify(next) }, locale).catch(() => {});
     }, 550);
   };
 
@@ -458,11 +473,11 @@ export function HomePage({ boot }: { boot: BootData }) {
       const data = await api<{ batch: BatchDTO }>("/api/batches", {
         method: "POST",
         body: JSON.stringify({ assetIds: ready.map((draft) => draft.asset!.id), settings }),
-      });
+      }, locale);
       setBatch(data.batch);
       setBatchId(data.batch.id);
     } catch (caught) {
-      setError(errorMessage(caught));
+      setError(errorMessage(caught, locale));
     } finally {
       setStarting(false);
     }
@@ -483,12 +498,12 @@ export function HomePage({ boot }: { boot: BootData }) {
   const doneCount = currentItems.filter((item) => item.status === "done").length;
   const batchPercent = batch ? savedPercent(batch.totalInput, batch.totalOutput) : null;
   const ctaLabel = starting
-    ? "Đang tạo lô…"
+    ? t("home.creating")
     : uploading
-      ? "Đang tải ảnh lên…"
+      ? t("home.uploadingCta")
       : readyDrafts.length
-        ? `Nén ${readyDrafts.length} ảnh & tải ZIP`
-        : "Thêm ảnh để bắt đầu";
+        ? t("home.compressCta", { count: readyDrafts.length })
+        : t("home.addToStart");
 
   return (
     <Shell active="home" limits={boot.limits}>
@@ -499,19 +514,22 @@ export function HomePage({ boot }: { boot: BootData }) {
             Bun.Image · ZIP · SQLite
           </span>
           <h1 className="mt-4 text-[clamp(2.35rem,5vw,3.6rem)] leading-[1.04] font-bold tracking-[-0.045em] text-slate-900">
-            Kéo ảnh vào.
+            {t("home.heroLine1")}
             <br />
-            Nhận <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 bg-clip-text text-transparent">ZIP nhẹ hơn</span>.
+            {t("home.heroLine2")}{" "}
+            <span className="bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 bg-clip-text text-transparent">
+              {t("home.heroHighlight")}
+            </span>
+            .
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-slate-500">
-            Giảm dung lượng ảnh hàng loạt, giữ độ nét, tùy chọn WebP, JPEG, PNG và EXIF. Mọi ảnh được đóng gói
-            trong một tệp ZIP duy nhất.
+            {t("home.heroBody")}
           </p>
           <div className="mt-6 flex gap-6">
             {[
-              [stats.files.toLocaleString("vi-VN"), "ảnh đã nén"],
-              [formatBytes(stats.savedBytes), "dung lượng tiết kiệm"],
-              [stats.batches.toLocaleString("vi-VN"), "lô hoàn tất"],
+              [formatNumber(stats.files, locale), t("home.statImages")],
+              [formatBytes(stats.savedBytes, locale), t("home.statSaved")],
+              [formatNumber(stats.batches, locale), t("home.statBatches")],
             ].map(([value, label]) => (
               <div key={label} className="flex flex-col border-r border-slate-200 pr-6 last:border-0 last:pr-0">
                 <span className="text-xl font-bold tracking-tight tabular-nums">{value}</span>
@@ -533,7 +551,7 @@ export function HomePage({ boot }: { boot: BootData }) {
           </div>
           <div className="pt-4">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-              <span>12 ảnh</span>
+              <span>{t("home.imageCount", { count: 12 })}</span>
               <span className="save-pill">−87%</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
@@ -541,13 +559,13 @@ export function HomePage({ boot }: { boot: BootData }) {
             </div>
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white/75 p-3">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400">Trước</span>
-                <strong className="text-[15px] tracking-tight">24,8 MB</strong>
+                <span className="text-[10px] text-slate-400">{t("home.mockBefore")}</span>
+                <strong className="text-[15px] tracking-tight">24.8 MB</strong>
               </div>
               <span className="mx-auto text-xs text-slate-300">→</span>
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400">Sau</span>
-                <strong className="text-[15px] tracking-tight text-emerald-600">3,2 MB</strong>
+                <span className="text-[10px] text-slate-400">{t("home.mockAfter")}</span>
+                <strong className="text-[15px] tracking-tight text-emerald-600">3.2 MB</strong>
               </div>
             </div>
           </div>
@@ -573,16 +591,18 @@ export function HomePage({ boot }: { boot: BootData }) {
                 <button
                   type="button"
                   className="flex w-full cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-6 py-7 text-center transition hover:border-indigo-400 hover:bg-indigo-50/40 sm:flex-row sm:text-left"
-                  aria-label="Chọn ảnh hoặc kéo thả vào đây"
+                  aria-label={t("home.chooseAria")}
                   onClick={() => inputRef.current?.click()}
                 >
                   <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600 shadow-lg shadow-indigo-500/10">
                     <UploadIcon size={25} />
                   </span>
                   <span className="block min-w-0 flex-1">
-                    <span className="block text-lg font-semibold tracking-tight">Kéo thả ảnh vào đây</span>
+                    <span className="block text-lg font-semibold tracking-tight">{t("home.dropTitle")}</span>
                     <span className="mt-0.5 block text-[13px] text-slate-400">
-                      hoặc <span className="font-semibold text-indigo-600">chọn từ máy</span> · dán bằng{" "}
+                      {t("home.dropOr")}{" "}
+                      <span className="font-semibold text-indigo-600">{t("home.chooseFromDevice")}</span> ·{" "}
+                      {t("home.pasteWith")}{" "}
                       <kbd className="rounded border border-slate-300 px-1 text-[10px]">Ctrl</kbd> +{" "}
                       <kbd className="rounded border border-slate-300 px-1 text-[10px]">V</kbd>
                     </span>
@@ -597,8 +617,12 @@ export function HomePage({ boot }: { boot: BootData }) {
                       ))}
                     </span>
                     <span className="mt-2 block text-[11.5px] text-slate-400">
-                      Tối đa {boot.limits.maxFiles} ảnh · {boot.limits.maxFileMB} MB/ảnh · tổng{" "}
-                      {formatBytes(boot.limits.maxTotalMB * 1024 * 1024)}/lô · {boot.limits.maxPixelsMP} MP
+                      {t("home.limits", {
+                        maxFiles: boot.limits.maxFiles,
+                        maxFileMB: boot.limits.maxFileMB,
+                        total: formatBytes(boot.limits.maxTotalMB * 1024 * 1024, locale),
+                        maxPixels: boot.limits.maxPixelsMP,
+                      })}
                     </span>
                   </span>
                 </button>
@@ -608,7 +632,7 @@ export function HomePage({ boot }: { boot: BootData }) {
                 <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-600" role="alert">
                   <AlertIcon size={17} className="mt-0.5 shrink-0" />
                   <span className="flex-1">{error}</span>
-                  <button type="button" onClick={() => setError(null)} aria-label="Đóng">
+                  <button type="button" onClick={() => setError(null)} aria-label={t("common.close")}>
                     <XIcon size={15} />
                   </button>
                 </div>
@@ -618,14 +642,15 @@ export function HomePage({ boot }: { boot: BootData }) {
                 <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="flex items-end justify-between gap-4 px-5 pt-4 pb-3">
                     <div>
-                      <h2 className="text-[15px] font-semibold tracking-tight">Ảnh đã chọn</h2>
+                      <h2 className="text-[15px] font-semibold tracking-tight">{t("home.selectedTitle")}</h2>
                       <p className="mt-0.5 text-[11.5px] text-slate-400">
-                        {readyDrafts.length} sẵn sàng{uploading ? " · đang tải lên…" : ""}
-                        {failedUploads ? ` · ${failedUploads} lỗi` : ""}
+                        {t("home.selectedReady", { count: readyDrafts.length })}
+                        {uploading ? ` · ${t("home.selectedUploading")}` : ""}
+                        {failedUploads ? ` · ${t("home.selectedFailed", { count: failedUploads })}` : ""}
                       </p>
                     </div>
                     <button type="button" className="btn-ghost px-2.5 py-1.5 text-[12px]" onClick={clearDrafts}>
-                      <TrashIcon size={14} /> Xoá tất cả
+                      <TrashIcon size={14} /> {t("home.removeAll")}
                     </button>
                   </div>
                   <ul className="max-h-[510px] overflow-y-auto border-t border-slate-100">
@@ -641,15 +666,21 @@ export function HomePage({ boot }: { boot: BootData }) {
                       <SparkleIcon size={18} />
                     </span>
                     <div>
-                      <h2 className="text-sm font-semibold tracking-tight">Ba bước, một tệp ZIP</h2>
-                      <p className="text-[11.5px] text-slate-400">Không cần cài đặt, ảnh xử lý ngay trên máy chủ này.</p>
+                      <h2 className="text-sm font-semibold tracking-tight">{t("home.stepsTitle")}</h2>
+                      <p className="text-[11.5px] text-slate-400">{t("home.stepsSubtitle")}</p>
                     </div>
                   </div>
                   <ol className="mt-4 grid gap-4 sm:grid-cols-3">
                     {[
-                      ["Kéo thả ảnh", `JPEG, PNG, WebP, GIF, BMP, TIFF. Tối đa ${boot.limits.maxFiles} ảnh mỗi lô.`],
-                      ["Chọn đầu ra", "WebP mặc định. Chỉnh chất lượng, kích thước hoặc mục tiêu KB."],
-                      ["Tải ZIP", `Toàn bộ ảnh đã nén, giữ tên gốc. Tự xoá sau ${boot.limits.retentionDays} ngày.`],
+                      [
+                        t("home.step1Title"),
+                        t("home.step1Body", { max: boot.limits.maxFiles }),
+                      ],
+                      [t("home.step2Title"), t("home.step2Body")],
+                      [
+                        t("home.step3Title"),
+                        t("home.step3Body", { days: boot.limits.retentionDays }),
+                      ],
                     ].map(([title, description], index) => (
                       <li key={title} className="flex items-start gap-2.5">
                         <span className="grid size-6 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-50 text-[10px] font-bold text-indigo-600">
@@ -689,19 +720,26 @@ export function HomePage({ boot }: { boot: BootData }) {
                   <div>
                     <h2 className="text-[17px] font-semibold tracking-tight">
                       {batch.status === "error"
-                        ? "Chưa nén được ảnh nào"
+                        ? t("home.batchErrorTitle")
                         : batch.status === "partial"
-                          ? "ZIP đã xong, một vài ảnh bị lỗi"
-                          : "ZIP đã sẵn sàng"}
+                          ? t("home.batchPartialTitle")
+                          : t("home.batchDoneTitle")}
                     </h2>
                     {batch.status === "error" ? (
-                      <p className="mt-1 text-[13px] text-slate-500">{batch.error ?? "Vui lòng thử lại với ảnh khác."}</p>
+                      <p className="mt-1 text-[13px] text-slate-500">
+                        {batch.error ?? t("home.batchErrorHint")}
+                      </p>
                     ) : (
                       <p className="mt-1 text-[13px] tabular-nums text-slate-500">
-                        {doneCount} ảnh · {formatBytes(batch.totalInput)} →{" "}
-                        <strong className="text-slate-800">{formatBytes(batch.totalOutput)}</strong>
+                        {t("home.batchResult", {
+                          count: doneCount,
+                          input: formatBytes(batch.totalInput, locale),
+                          output: formatBytes(batch.totalOutput, locale),
+                        })}
                         {batchPercent !== null ? (
-                          <span className="font-medium text-emerald-600"> · nhỏ hơn {batchPercent}%</span>
+                          <span className="font-medium text-emerald-600">
+                            {" "}· {t("home.smaller", { percent: batchPercent })}
+                          </span>
                         ) : null}
                         {batch.error ? ` · ${batch.error}` : ""}
                       </p>
@@ -710,12 +748,12 @@ export function HomePage({ boot }: { boot: BootData }) {
                       {batch.zipUrl ? (
                         <a className="btn-primary px-3.5 py-2 text-[13px]" href={batch.zipUrl} download>
                           <DownloadIcon size={16} />
-                          Tải ZIP ({formatBytes(batch.zipBytes)})
+                          {t("home.downloadZip", { size: formatBytes(batch.zipBytes, locale) })}
                         </a>
                       ) : null}
                       <button type="button" className="btn-ghost px-3.5 py-2 text-[13px]" onClick={resetAll}>
                         <RefreshIcon size={15} />
-                        Nén lô mới
+                        {t("home.newBatch")}
                       </button>
                     </div>
                   </div>
@@ -728,9 +766,11 @@ export function HomePage({ boot }: { boot: BootData }) {
                     </span>
                     <div>
                       <h2 className="text-[15px] font-semibold tracking-tight">
-                        Đang nén {doneCount}/{currentItems.length} ảnh
+                        {t("home.compressingProgress", { done: doneCount, total: currentItems.length })}
                       </h2>
-                      <p className="text-[11.5px] text-slate-400">{settingsSummary(settings)}</p>
+                      <p className="text-[11.5px] text-slate-400">
+                        {settingsSummary(settings, locale)}
+                      </p>
                     </div>
                     <strong className="ml-auto text-xl font-bold tabular-nums text-indigo-600">{overallProgress}%</strong>
                   </div>
@@ -741,7 +781,7 @@ export function HomePage({ boot }: { boot: BootData }) {
                     />
                   </div>
                   <p className="mt-2 text-[10.5px] text-slate-400">
-                    Ảnh được xử lý bằng Bun.Image trên máy chủ, không upload đi đâu khác.
+                    {t("home.privacyNote")}
                   </p>
                 </section>
               )}
@@ -749,9 +789,12 @@ export function HomePage({ boot }: { boot: BootData }) {
               <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex items-end justify-between gap-4 px-5 pt-4 pb-3">
                   <div>
-                    <h2 className="text-[15px] font-semibold tracking-tight">Ảnh trong lô</h2>
+                    <h2 className="text-[15px] font-semibold tracking-tight">{t("home.itemsTitle")}</h2>
                     <p className="mt-0.5 text-[11.5px] text-slate-400">
-                      {currentItems.length} ảnh · {settingsSummary(settings)}
+                      {t("home.itemsSummary", {
+                        count: currentItems.length,
+                        summary: settingsSummary(settings, locale),
+                      })}
                     </p>
                   </div>
                   {batch.status === "partial" ? (
@@ -790,15 +833,17 @@ export function HomePage({ boot }: { boot: BootData }) {
               <>
                 <div className="flex items-end justify-between gap-3">
                   <div className="flex flex-col">
-                    <span className="text-[10.5px] text-slate-400">Đã chọn</span>
+                    <span className="text-[10.5px] text-slate-400">{t("home.selectedLabel")}</span>
                     <strong className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight tabular-nums">
-                      {readyDrafts.length} ảnh
+                      {t("home.imageCount", { count: readyDrafts.length })}
                       {uploading ? <SpinnerIcon size={13} /> : null}
                     </strong>
                   </div>
                   <div className="flex flex-col text-right">
-                    <span className="text-[10.5px] text-slate-400">Tổng</span>
-                    <strong className="text-[15px] font-bold tracking-tight tabular-nums">{formatBytes(readyBytes)}</strong>
+                    <span className="text-[10.5px] text-slate-400">{t("home.totalLabel")}</span>
+                    <strong className="text-[15px] font-bold tracking-tight tabular-nums">
+                      {formatBytes(readyBytes, locale)}
+                    </strong>
                   </div>
                 </div>
                 <button
@@ -811,18 +856,22 @@ export function HomePage({ boot }: { boot: BootData }) {
                   {ctaLabel}
                 </button>
                 <p className="mt-2.5 text-center text-[10.5px] leading-snug text-slate-400">
-                  Ảnh gốc được xoá cùng lịch sử sau {boot.limits.retentionDays} ngày.
+                  {t("home.originalCleanup", { days: boot.limits.retentionDays })}
                 </p>
               </>
             ) : (
               <>
                 <div className="flex items-end justify-between gap-3">
                   <div className="flex flex-col">
-                    <span className="text-[10.5px] text-slate-400">Lô hiện tại</span>
-                    <strong className="text-[15px] font-bold tracking-tight tabular-nums">{currentItems.length} ảnh</strong>
+                    <span className="text-[10.5px] text-slate-400">{t("home.currentBatch")}</span>
+                    <strong className="text-[15px] font-bold tracking-tight tabular-nums">
+                      {t("home.imageCount", { count: currentItems.length })}
+                    </strong>
                   </div>
                   <div className="flex flex-col text-right">
-                    <span className="text-[10.5px] text-slate-400">{batchFinished ? "Tiết kiệm" : "Tiến độ"}</span>
+                    <span className="text-[10.5px] text-slate-400">
+                      {batchFinished ? t("home.savedLabel") : t("home.progressLabel")}
+                    </span>
                     <strong className="text-[15px] font-bold tracking-tight tabular-nums">
                       {batchFinished ? (batchPercent !== null ? `${batchPercent}%` : "—") : `${overallProgress}%`}
                     </strong>
@@ -831,22 +880,20 @@ export function HomePage({ boot }: { boot: BootData }) {
                 {batchFinished && batch.zipUrl ? (
                   <a className="btn-primary mt-3 w-full py-3.5 text-[15px]" href={batch.zipUrl} download>
                     <DownloadIcon size={18} />
-                    Tải ZIP ({formatBytes(batch.zipBytes)})
+                    {t("home.downloadZip", { size: formatBytes(batch.zipBytes, locale) })}
                   </a>
                 ) : (
                   <button type="button" className="btn-primary mt-3 w-full py-3.5 text-[15px]" disabled>
                     <SpinnerIcon size={18} />
-                    {batchFinished ? "Không có ZIP" : "Đang nén ảnh…"}
+                    {batchFinished ? t("home.noZip") : t("home.compressing")}
                   </button>
                 )}
                 <button type="button" className="btn-ghost mt-2 w-full" onClick={resetAll}>
                   <RefreshIcon size={16} />
-                  Nén lô mới
+                  {t("home.newBatch")}
                 </button>
                 <p className="mt-2.5 text-center text-[10.5px] leading-snug text-slate-400">
-                  {batchFinished && batch.zipUrl
-                    ? "Tệp ZIP gồm toàn bộ ảnh đã nén, giữ tên gốc."
-                    : "Bạn có thể rời trang, lô ảnh vẫn tiếp tục trên máy chủ."}
+                  {batchFinished && batch.zipUrl ? t("home.zipContains") : t("home.leavePage")}
                 </p>
               </>
             )}
@@ -858,11 +905,11 @@ export function HomePage({ boot }: { boot: BootData }) {
         <section className="mt-10">
           <div className="mb-3 flex items-end justify-between gap-4 px-0.5">
             <div>
-              <h2 className="text-[15px] font-semibold tracking-tight">Gần đây</h2>
-              <p className="mt-0.5 text-[11.5px] text-slate-400">Các lô đã nén và tệp ZIP còn lưu trên máy chủ</p>
+              <h2 className="text-[15px] font-semibold tracking-tight">{t("home.recentTitle")}</h2>
+              <p className="mt-0.5 text-[11.5px] text-slate-400">{t("home.recentSubtitle")}</p>
             </div>
             <a className="text-[13px] font-semibold text-indigo-600 hover:underline" href="/history">
-              Xem tất cả →
+              {t("home.viewAll")}
             </a>
           </div>
           <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
@@ -872,20 +919,20 @@ export function HomePage({ boot }: { boot: BootData }) {
                 <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition hover:border-slate-300">
                   <div className="flex items-center justify-between gap-2">
                     <BatchStatusBadge batch={item} />
-                    <span className="text-[10.5px] text-slate-400">{formatDate(item.createdAt)}</span>
+                    <span className="text-[10.5px] text-slate-400">{formatDate(item.createdAt, locale)}</span>
                   </div>
-                  <h3 className="mt-2 text-sm font-semibold">{item.fileCount} ảnh</h3>
+                  <h3 className="mt-2 text-sm font-semibold">{t("home.imageCount", { count: item.fileCount })}</h3>
                   <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[11.5px] tabular-nums text-slate-400">
-                    {formatBytes(item.totalInput)} <span>→</span>
-                    {item.totalOutput !== null ? formatBytes(item.totalOutput) : "…"}
+                    {formatBytes(item.totalInput, locale)} <span>→</span>
+                    {item.totalOutput !== null ? formatBytes(item.totalOutput, locale) : "…"}
                     {percent !== null ? <em className="font-bold not-italic text-emerald-600">−{percent}%</em> : null}
                   </p>
                   <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
                     <a className="text-[12.5px] font-semibold text-indigo-600 hover:underline" href={`/history/${item.id}`}>
-                      Chi tiết
+                      {t("common.details")}
                     </a>
                     {item.zipUrl ? (
-                      <a className="grid size-7 place-items-center rounded-md border border-slate-200 text-slate-400 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" href={item.zipUrl} download aria-label="Tải ZIP">
+                      <a className="grid size-7 place-items-center rounded-md border border-slate-200 text-slate-400 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600" href={item.zipUrl} download aria-label={t("home.downloadAria")}>
                         <DownloadIcon size={15} />
                       </a>
                     ) : null}
@@ -901,7 +948,7 @@ export function HomePage({ boot }: { boot: BootData }) {
         <div className="fixed inset-0 z-50 grid place-items-center bg-[#f6f7fb]/60 p-6 backdrop-blur-sm" aria-hidden>
           <div className="flex w-full max-w-2xl flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-indigo-500 bg-white/90 px-8 py-14 text-indigo-600 shadow-2xl">
             <UploadIcon size={30} />
-            <span className="text-lg font-semibold">Thả ảnh để thêm vào lô</span>
+            <span className="text-lg font-semibold">{t("home.dropOverlay")}</span>
           </div>
         </div>
       ) : null}

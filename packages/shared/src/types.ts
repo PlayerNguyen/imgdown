@@ -1,3 +1,5 @@
+import type { Locale } from "./i18n";
+
 export const OUTPUT_FORMATS = ["auto", "webp", "jpeg", "png", "original", "avif", "heic"] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
@@ -98,6 +100,7 @@ export type Page = "home" | "history" | "batch";
 
 export type BootData = {
   page: Page;
+  locale: Locale;
   stats: Stats;
   batches: BatchDTO[];
   settings: Settings;

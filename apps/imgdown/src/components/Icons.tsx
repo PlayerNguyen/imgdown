@@ -6,6 +6,7 @@ import {
   LuFileArchive,
   LuHistory,
   LuImage,
+  LuLanguages,
   LuLoaderCircle,
   LuRefreshCw,
   LuSlidersHorizontal,
@@ -182,4 +183,13 @@ export function RefreshIcon(props: IconProps) {
 export function SpinnerIcon(props: IconProps) {
   const className = ["animate-spin", props.className].filter(Boolean).join(" ");
   return <LuLoaderCircle {...props} className={className} />;
+}
+
+/**
+ * Renders a language icon from Lucide.
+ * @param props - Icon props including size and className.
+ * @returns The rendered icon element.
+ */
+export function LanguageIcon(props: IconProps) {
+  return <LuLanguages {...props} />;
 }

@@ -11,7 +11,7 @@ describe("Bun.Image pipeline", () => {
   });
 
   test("rejects bytes that are not an image", async () => {
-    await expect(inspectImage(new TextEncoder().encode("not an image"))).rejects.toThrow(/ảnh hợp lệ/);
+    await expect(inspectImage(new TextEncoder().encode("not an image"))).rejects.toThrow(/valid image/);
   });
 
   test("downscales while keeping the aspect ratio", async () => {

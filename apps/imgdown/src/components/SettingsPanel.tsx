@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { Capabilities, OutputFormat, Settings } from "@imgdown/shared";
-import { FORMAT_HINTS, FORMAT_NAMES } from "@imgdown/shared";
+import { formatHint, formatName } from "@imgdown/shared";
 import { CheckIcon, SlidersIcon } from "./Icons";
+import { useI18n } from "../lib/i18n";
 
 const FORMATS: OutputFormat[] = ["auto", "webp", "jpeg", "png", "original", "avif", "heic"];
 const QUALITY_PRESETS = [90, 80, 65, 50];
@@ -31,31 +32,33 @@ export function SettingsPanel({
   capabilities: Capabilities;
   disabled: boolean;
 }) {
+  const { locale, t } = useI18n();
   const update = (patch: Partial<Settings>) => onChange({ ...settings, ...patch });
   const png = settings.format === "png";
   const qualityDisabled = disabled || (png && !settings.pngPalette);
   const unavailable = (format: OutputFormat) =>
     (format === "avif" && !capabilities.avif) || (format === "heic" && !capabilities.heic);
+  const colors = Math.max(8, Math.min(256, Math.round(16 + (settings.quality / 100) * 240)));
 
   return (
-    <aside className="card p-4" aria-label="Cài đặt đầu ra">
+    <aside className="card p-4" aria-label={t("settings.title")}>
       <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3.5">
         <span className="grid size-9 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-indigo-600">
           <SlidersIcon size={18} />
         </span>
         <div>
-          <h2 className="text-sm font-semibold tracking-tight">Cài đặt đầu ra</h2>
-          <p className="text-[11px] text-slate-400">Áp dụng cho cả lô ảnh</p>
+          <h2 className="text-sm font-semibold tracking-tight">{t("settings.title")}</h2>
+          <p className="text-[11px] text-slate-400">{t("settings.subtitle")}</p>
         </div>
       </div>
 
       <fieldset className="min-w-0 pt-4 disabled:opacity-60" disabled={disabled}>
         <div>
           <div className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="field-label">Định dạng</span>
-            <span className="field-value">{FORMAT_NAMES[settings.format]}</span>
+            <span className="field-label">{t("settings.format")}</span>
+            <span className="field-value">{formatName(locale, settings.format)}</span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5" aria-label="Định dạng đầu ra">
+          <div className="grid grid-cols-3 gap-1.5" aria-label={t("settings.formatAria")}>
             {FORMATS.map((format) => {
               const blocked = unavailable(format);
               return (
@@ -64,28 +67,32 @@ export function SettingsPanel({
                   type="button"
                   aria-pressed={settings.format === format}
                   disabled={blocked}
-                  title={blocked ? "Không được hỗ trợ trên máy chủ này" : FORMAT_HINTS[format]}
+                  title={blocked ? t("settings.unsupportedTitle") : formatHint(locale, format)}
                   onClick={() => update({ format })}
                   className={`format-btn ${settings.format === format ? "format-btn-active" : ""}`}
                 >
-                  <span className="format-name">{FORMAT_NAMES[format]}</span>
-                  <span className="format-hint">{blocked ? "Không hỗ trợ" : FORMAT_HINTS[format]}</span>
+                  <span className="format-name">{formatName(locale, format)}</span>
+                  <span className="format-hint">
+                    {blocked ? t("settings.unsupported") : formatHint(locale, format)}
+                  </span>
                 </button>
               );
             })}
           </div>
-          {capabilities.note ? <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">{capabilities.note}</p> : null}
+          {capabilities.note ? (
+            <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">
+              {t("settings.capabilityNote")}
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-4 border-t border-slate-100 pt-4">
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <label htmlFor="quality" className="field-label">
-              {png ? "Số màu (palette)" : "Chất lượng"}
+              {png ? t("settings.palette") : t("settings.quality")}
             </label>
             <output htmlFor="quality" className="text-xs font-bold tabular-nums text-indigo-600">
-              {png
-                ? `${Math.max(8, Math.min(256, Math.round(16 + (settings.quality / 100) * 240)))} màu`
-                : `${settings.quality}%`}
+              {png ? t("settings.colors", { count: colors }) : `${settings.quality}%`}
             </output>
           </div>
           <input
@@ -112,25 +119,25 @@ export function SettingsPanel({
               </button>
             ))}
             <span className="ml-auto text-[10px] text-slate-400">
-              {qualityDisabled ? "Bật palette để chỉnh" : "Cao hơn = nét hơn"}
+              {qualityDisabled ? t("settings.paletteEnable") : t("settings.qualityHint")}
             </span>
           </div>
         </div>
 
         <details className="mt-4 border-t border-slate-100 pt-3.5" open={settings.maxWidth > 0 || settings.maxHeight > 0}>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
-            <span className="field-label">Kích thước tối đa</span>
+            <span className="field-label">{t("settings.maxSize")}</span>
             <span className="field-value flex items-center gap-1.5">
               {settings.maxWidth || settings.maxHeight
                 ? `${settings.maxWidth || "∞"} × ${settings.maxHeight || "∞"} px`
-                : "Giữ nguyên"}
+                : t("settings.keepOriginal")}
               <span className="text-[10px]">▾</span>
             </span>
           </summary>
           <div className="pt-3">
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
               <label className="flex flex-col gap-1 text-[10.5px] text-slate-400">
-                Rộng
+                {t("settings.width")}
                 <input
                   type="number"
                   inputMode="numeric"
@@ -145,7 +152,7 @@ export function SettingsPanel({
               </label>
               <span className="pb-2 text-xs text-slate-400">×</span>
               <label className="flex flex-col gap-1 text-[10.5px] text-slate-400">
-                Cao
+                {t("settings.height")}
                 <input
                   type="number"
                   inputMode="numeric"
@@ -161,7 +168,7 @@ export function SettingsPanel({
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <button type="button" className="chip" onClick={() => update({ maxWidth: 0, maxHeight: 0 })}>
-                Gốc
+                {t("common.original")}
               </button>
               {[2560, 1920, 1280, 800].map((edge) => (
                 <button
@@ -175,16 +182,16 @@ export function SettingsPanel({
               ))}
             </div>
             <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">
-              Ảnh nhỏ hơn sẽ không bị phóng to. Đặt 0 để bỏ giới hạn.
+              {t("settings.maxSizeHint")}
             </p>
           </div>
         </details>
 
         <details className="mt-4 border-t border-slate-100 pt-3.5" open={settings.targetKB !== null}>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
-            <span className="field-label">Dung lượng mục tiêu</span>
+            <span className="field-label">{t("settings.target")}</span>
             <span className="field-value flex items-center gap-1.5">
-              {settings.targetKB ? `${settings.targetKB} KB` : "Không giới hạn"}
+              {settings.targetKB ? `${settings.targetKB} KB` : t("common.unlimited")}
               <span className="text-[10px]">▾</span>
             </span>
           </summary>
@@ -197,34 +204,38 @@ export function SettingsPanel({
                 min={5}
                 max={50000}
                 className="input pr-16"
-                placeholder="Không giới hạn"
-                aria-label="Dung lượng mục tiêu mỗi ảnh (KB)"
+                placeholder={t("common.unlimited")}
+                aria-label={t("settings.targetAria")}
                 value={settings.targetKB ?? ""}
                 onChange={(event) =>
                   update({ targetKB: event.target.value === "" ? null : Math.max(5, num(event.target.value)) })
                 }
               />
               <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[10.5px] text-slate-400">
-                KB / ảnh
+                {t("settings.perImage")}
               </span>
             </div>
             <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">
-              Tự tìm chất lượng thấp nhất đạt mục tiêu, không vượt mức chất lượng đã chọn.
+              {t("settings.targetHint")}
             </p>
           </div>
         </details>
 
         <div className="mt-4 border-t border-slate-100 pt-4">
           <div className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="field-label">Siêu dữ liệu</span>
+            <span className="field-label">{t("settings.metadata")}</span>
             <span className="field-value">
-              {settings.keepMetadata ? (settings.keepLocation ? "EXIF + GPS" : "EXIF") : "Đã xoá"}
+              {settings.keepMetadata
+                ? settings.keepLocation
+                  ? t("summary.exifLocation")
+                  : t("summary.exif")
+                : t("settings.metadataRemoved")}
             </span>
           </div>
           <label className="check-row">
             <span>
-              Giữ EXIF máy ảnh &amp; ống kính
-              <small>Khẩu độ, tiêu cự, ISO, ngày chụp… chỉ thêm vài KB.</small>
+              {t("settings.keepExif")}
+              <small>{t("settings.keepExifHint")}</small>
             </span>
             <input
               type="checkbox"
@@ -239,8 +250,8 @@ export function SettingsPanel({
           </label>
           <label className={`check-row mt-3 ${settings.keepMetadata ? "" : "check-disabled"}`}>
             <span>
-              Giữ vị trí GPS
-              <small>Tắt để không chia sẻ nơi chụp. Chỉ dùng khi bật EXIF.</small>
+              {t("settings.keepGps")}
+              <small>{t("settings.keepGpsHint")}</small>
             </span>
             <input
               type="checkbox"
@@ -250,20 +261,20 @@ export function SettingsPanel({
             />
           </label>
           <p className="mt-2 text-[10.5px] leading-relaxed text-slate-400">
-            Hỗ trợ JPEG, WebP, PNG. AVIF/HEIC chưa nhúng lại được EXIF.
+            {t("settings.metadataHint")}
           </p>
         </div>
 
         <details className="mt-4 border-t border-slate-100 pt-3.5">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-slate-600">Nâng cao</span>
+            <span className="text-xs font-semibold text-slate-600">{t("settings.advanced")}</span>
             <span className="text-[10px] text-slate-400">＋</span>
           </summary>
           <div className="flex flex-col gap-3 pt-3">
             <label className="check-row">
               <span>
-                PNG palette
-                <small>Giảm mạnh dung lượng ảnh đồ hoạ, icon, ảnh chụp màn hình.</small>
+                {t("settings.pngPalette")}
+                <small>{t("settings.pngPaletteHint")}</small>
               </span>
               <input
                 type="checkbox"
@@ -273,8 +284,8 @@ export function SettingsPanel({
             </label>
             <label className="check-row">
               <span>
-                JPEG progressive
-                <small>Hiển thị dần khi tải, thường nhẹ hơn một chút.</small>
+                {t("settings.progressive")}
+                <small>{t("settings.progressiveHint")}</small>
               </span>
               <input
                 type="checkbox"
@@ -283,7 +294,7 @@ export function SettingsPanel({
               />
             </label>
             <label className="flex flex-col gap-1 text-[11.5px] text-slate-600">
-              Hậu tố tên tệp
+              {t("settings.suffix")}
               <input
                 type="text"
                 className="input"
@@ -298,7 +309,7 @@ export function SettingsPanel({
       </fieldset>
 
       <p className="mt-4 flex items-center gap-1 border-t border-slate-100 pt-3 text-[10.5px] text-slate-400">
-        <CheckIcon size={13} className="text-emerald-500" /> Cài đặt được lưu tự động vào SQLite
+        <CheckIcon size={13} className="text-emerald-500" /> {t("settings.autosave")}
       </p>
     </aside>
   );

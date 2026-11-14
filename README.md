@@ -1,93 +1,103 @@
 # ImgDown
 
-Ứng dụng web kéo–thả ảnh, nén hàng loạt và trả về **một tệp ZIP**. Frontend React được render **SSR toàn bộ** bằng `react-dom/server`, backend chạy bằng **Bun**, xử lý ảnh bằng **`Bun.Image`** và lưu lịch sử/cài đặt trong **SQLite**.
+A drag-and-drop web app that batch-compresses images and returns **a single ZIP file**. The React frontend is **fully server-rendered** with `react-dom/server`, the backend runs on **Bun**, images are processed with **`Bun.Image`**, and history/settings are stored in **SQLite**.
 
-## Tính năng
+## Features
 
-- Kéo–thả, chọn từ máy hoặc dán ảnh (`Ctrl/⌘ + V`), upload song song có tiến trình.
-- Định dạng đầu ra: Tự động (WebP), WebP, JPEG, PNG, AVIF, HEIC hoặc giữ định dạng gốc.
-- Chất lượng, kích thước tối đa, dung lượng mục tiêu mỗi ảnh, PNG palette, JPEG progressive, hậu tố tên tệp.
-- **Giữ EXIF máy ảnh & ống kính (bật mặc định)**; tuỳ chọn giữ GPS riêng (mặc định tắt). Hỗ trợ JPEG/WebP/PNG.
-- ZIP một tệp, giữ tên gốc, tự chống trùng tên; tiến trình và thống kê tiết kiệm.
-- Lịch sử lô, chi tiết từng ảnh, tải lại ZIP, xoá lô; dọn ảnh/ZIP quá hạn (mặc định 7 ngày).
-- Giới hạn mỗi lô: **100 ảnh · 60 MB/ảnh · tổng 1 GB** (đổi qua biến môi trường).
+- Drag and drop, pick from your device or paste images (`Ctrl/⌘ + V`); parallel uploads with progress.
+- Output formats: Auto (WebP), WebP, JPEG, PNG, AVIF, HEIC, or keep the original format.
+- Quality, max dimensions, per-image target size, PNG palette, progressive JPEG and a filename suffix.
+- **Preserve camera and lens EXIF (enabled by default)**; GPS retention is a separate opt-in (off by default). JPEG/WebP/PNG are supported.
+- One ZIP per batch, original names preserved, automatic duplicate-name handling, progress and savings stats.
+- Batch history, per-image details, re-download ZIPs, delete batches, and automatic cleanup of expired images/ZIPs (7 days by default).
+- Per-batch limits: **100 images · 60 MB/image · 1 GB total** (configurable through environment variables).
+- **English and Vietnamese UI** with an in-app language switcher; the choice is stored in a cookie and applied during SSR.
 
-## Cấu trúc monorepo
+## Monorepo layout
 
 ```
 apps/
   imgdown/              # Bun server + React SSR + Tailwind UI
     server/             # Bun.serve, SSR, batch processor
     src/                # React pages/components, client entry, styles.css
-    public/             # bundle + CSS được build (gitignored)
+    public/             # built bundle + CSS (gitignored)
     scripts/build.ts
 packages/
-  shared/               # kiểu dữ liệu + format helpers dùng chung
+  shared/               # shared types, formatters and i18n messages
   media/                # Bun.Image pipeline, EXIF, ZIP, settings
   db/                   # SQLite schema/queries + cleanup
 ```
 
-## Chạy
+## Running
 
-Yêu cầu **Bun ≥ 1.4** (có `Bun.Image`).
+Requires **Bun ≥ 1.4** (with `Bun.Image`).
 
 ```bash
 bun install
 bun run dev          # build + server watch, http://localhost:3000
-bun run start        # production: build minified + chạy server
+bun run start        # production: minified build + server
 ```
 
-## Kiểm tra chất lượng
+## Quality checks
 
 ```bash
-bun check            # type check bằng Bun (thay cho tsc)
+bun check            # type check with Bun (instead of tsc)
 bun run lint         # oxlint (errors fail, warnings reported)
-bun test             # unit test bằng bun:test
+bun test             # unit tests with bun:test
 bun run dup          # jscpd, threshold < 1.5%
 bun run build        # client bundle + Tailwind CSS
 ```
 
 ## JSDoc
 
-Toàn bộ JSDoc dùng tiếng Anh. Oxlint 1.93 hỗ trợ sẵn `require-param`, `require-param-description`, `require-returns`, `require-returns-description`, `check-tag-names`, `empty-tags`. Ba rule còn lại (`require-jsdoc`, `require-description`, `check-param-names`) được nạp qua `jsPlugins` của Oxlint bằng `eslint-plugin-jsdoc` (alias `jsdoc-js`) — vẫn chạy trong `bun run lint`, không cần ESLint CLI.
+All JSDoc is written in English. Oxlint 1.93 supports `require-param`, `require-param-description`, `require-returns`, `require-returns-description`, `check-tag-names` and `empty-tags` natively. The remaining three rules (`require-jsdoc`, `require-description`, `check-param-names`) are loaded through Oxlint's `jsPlugins` using `eslint-plugin-jsdoc` (aliased as `jsdoc-js`) — they still run inside `bun run lint`, with no ESLint CLI required.
 
-## Biến môi trường
+## Internationalization
 
-| Biến | Mặc định | Ý nghĩa |
+- Supported locales: `en` (default) and `vi`.
+- Messages live in `packages/shared/src/i18n.ts`.
+- The server reads the `imgdown_locale` cookie, falls back to `DEFAULT_LOCALE`, and passes the resolved locale to the client through the SSR boot payload.
+- The language picker in the header updates the React tree immediately, persists the cookie and refreshes `lang`, `<title>` and the meta description without reloading the page.
+- Number, byte and date formatting are locale-aware. English dates use UTC and Vietnamese dates use `Asia/Ho_Chi_Minh` so SSR output stays deterministic.
+
+## Environment variables
+
+| Variable | Default | Meaning |
 | --- | --- | --- |
-| `PORT` | `3000` | Cổng HTTP |
-| `HOST` | `0.0.0.0` | Địa chỉ bind |
-| `DATA_DIR` | `./data` | SQLite, ảnh upload, thumbnail, ZIP |
-| `MAX_FILES` | `100` | Số ảnh tối đa mỗi lô |
-| `MAX_FILE_MB` | `60` | Dung lượng tối đa mỗi ảnh |
-| `MAX_TOTAL_MB` | `1024` | Tổng dung lượng tối đa mỗi lô (1 GB) |
-| `MAX_PIXELS_MP` | `50` | Giới hạn megapixel |
-| `IMAGE_CONCURRENCY` | `1` | Số ảnh nén song song |
-| `RETENTION_DAYS` | `7` | Thời gian giữ ảnh/ZIP |
+| `PORT` | `3000` | HTTP port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `DATA_DIR` | `./data` | SQLite database, uploads, thumbnails, ZIP files |
+| `MAX_FILES` | `100` | Maximum images per batch |
+| `MAX_FILE_MB` | `60` | Maximum size per image |
+| `MAX_TOTAL_MB` | `1024` | Maximum total size per batch (1 GB) |
+| `MAX_PIXELS_MP` | `50` | Megapixel limit |
+| `IMAGE_CONCURRENCY` | `1` | Number of images compressed in parallel |
+| `RETENTION_DAYS` | `7` | How long images/ZIP files are kept |
+| `DEFAULT_LOCALE` | `en` | Fallback UI locale (`en` or `vi`) |
 
-`DATA_DIR` tương đối theo thư mục `apps/imgdown` khi chạy qua script root.
+`DATA_DIR` is resolved relative to the `apps/imgdown` directory when started through the root script.
 
-## Ghi chú kỹ thuật
+## Technical notes
 
-- AVIF/HEIC cần codec hệ điều hành; trên Linux thường bị tắt, WebP/JPEG/PNG luôn dùng được.
-- EXIF được nhúng lại cho JPEG (APP1), WebP (VP8X + EXIF chunk), PNG (eXIf). Orientation luôn đặt về 1 vì pixel đã được xoay; GPS bị xoá nếu tắt tuỳ chọn.
-- ZIP dùng phương thức STORE (ảnh đã nén sẵn), UTF-8 names, CRC32.
-- Ảnh được kiểm tra bằng `Bun.Image` (không tin phần mở rộng/MIME), chặn path traversal trong tên ZIP.
-- SSR dùng dữ liệu boot từ SQLite; không có `Date.now()`/`Math.random()` trong render.
+- AVIF/HEIC require OS codecs; they are often disabled on Linux, while WebP/JPEG/PNG always work.
+- EXIF is re-embedded for JPEG (APP1), WebP (VP8X + EXIF chunk) and PNG (eXIf). Orientation is always reset to 1 because pixels are already rotated; GPS is stripped unless the option is enabled.
+- ZIP uses the STORE method (images are already compressed), UTF-8 names and CRC32.
+- Uploads are validated with `Bun.Image` (extensions and MIME types are not trusted), and ZIP entry names are protected against path traversal.
+- SSR uses boot data read from SQLite; no `Date.now()` or `Math.random()` runs during render.
 
 ## API
 
-| Method | Đường dẫn | Mô tả |
+| Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/api/assets` | Upload ảnh (`file`/`files`) |
-| `POST` | `/api/batches` | Tạo lô `{ assetIds, settings }` |
-| `GET` | `/api/batches?limit=` | Danh sách lô |
-| `GET` | `/api/batches/:id` | Trạng thái + items |
-| `DELETE` | `/api/batches/:id` | Xoá lô, ZIP, ảnh không còn dùng |
-| `GET` | `/api/batches/:id/download` | Tải ZIP |
-| `POST` | `/api/settings` | Lưu cài đặt mặc định |
-| `GET` | `/api/thumb/asset/:id` | Thumbnail ảnh gốc |
-| `GET` | `/api/thumb/item/:id` | Thumbnail ảnh nén |
+| `POST` | `/api/assets` | Upload images (`file`/`files`) |
+| `POST` | `/api/batches` | Create a batch `{ assetIds, settings }` |
+| `GET` | `/api/batches?limit=` | List batches |
+| `GET` | `/api/batches/:id` | Batch status + items |
+| `DELETE` | `/api/batches/:id` | Delete a batch, its ZIP and unused images |
+| `GET` | `/api/batches/:id/download` | Download the ZIP |
+| `POST` | `/api/settings` | Save default settings |
+| `GET` | `/api/thumb/asset/:id` | Original-image thumbnail |
+| `GET` | `/api/thumb/item/:id` | Compressed-image thumbnail |
 | `GET` | `/health` | Health check |
 
 ## zrok

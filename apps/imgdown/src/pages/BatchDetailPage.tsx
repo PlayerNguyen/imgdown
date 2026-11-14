@@ -4,14 +4,15 @@ import { Shell } from "../components/Shell";
 import { BatchStatusBadge, batchStatusLabel } from "../components/BatchBits";
 import { AlertIcon, CheckIcon, DownloadIcon, ImageIcon, SpinnerIcon, TrashIcon, ZipIcon } from "../components/Icons";
 import {
-  FORMAT_NAMES,
   formatBytes,
   formatDate,
   formatDimensions,
+  formatName,
   savedPercent,
   settingsSummary,
 } from "@imgdown/shared";
 import { api, errorMessage } from "../lib/client-api";
+import { useI18n } from "../lib/i18n";
 
 const ACTIVE = new Set(["queued", "processing"]);
 
@@ -22,6 +23,7 @@ const ACTIVE = new Set(["queued", "processing"]);
  * @returns The rendered React element.
  */
 export function BatchDetailPage({ boot }: { boot: BootData }) {
+  const { locale, t } = useI18n();
   const [batch, setBatch] = useState<BatchDTO>(boot.batch!);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
       try {
-        const data = await api<{ batch: BatchDTO }>(`/api/batches/${batch.id}`);
+        const data = await api<{ batch: BatchDTO }>(`/api/batches/${batch.id}`, undefined, locale);
         if (cancelled) return;
         setBatch(data.batch);
         if (ACTIVE.has(data.batch.status)) timer = setTimeout(tick, 800);
@@ -47,17 +49,17 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
       if (timer) clearTimeout(timer);
     };
     // Status changes (processing → done/error) restart the effect and stop polling.
-  }, [batch.id, batch.status]);
+  }, [batch.id, batch.status, locale]);
 
   const remove = async () => {
-    if (!globalThis.confirm("Xoá lô ảnh này cùng tệp ZIP? Thao tác không thể hoàn tác.")) return;
+    if (!globalThis.confirm(t("detail.confirm"))) return;
     setDeleting(true);
     setError(null);
     try {
-      await api(`/api/batches/${batch.id}`, { method: "DELETE" });
+      await api(`/api/batches/${batch.id}`, { method: "DELETE" }, locale);
       globalThis.location.href = "/history";
     } catch (caught) {
-      setError(errorMessage(caught));
+      setError(errorMessage(caught, locale));
       setDeleting(false);
     }
   };
@@ -73,33 +75,36 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
   return (
     <Shell active="batch" limits={boot.limits}>
       <a className="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-600" href="/history">
-        <span aria-hidden>←</span> Quay lại lịch sử
+        <span aria-hidden>←</span> {t("detail.back")}
       </a>
 
       <section className="flex flex-col items-start justify-between gap-5 pb-6 lg:flex-row">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <BatchStatusBadge batch={batch} />
-            <h1 className="text-[2rem] font-extrabold tracking-tight">Lô {batch.fileCount} ảnh</h1>
+            <h1 className="text-[2rem] font-extrabold tracking-tight">
+              {t("detail.title", { count: batch.fileCount })}
+            </h1>
           </div>
-          <p className="mt-1 text-xs text-slate-400">{formatDate(batch.createdAt)}</p>
+          <p className="mt-1 text-xs text-slate-400">{formatDate(batch.createdAt, locale)}</p>
           <p className="mt-1 text-[12.5px] text-slate-500">
-            {settingsSummary(batch.settings)} <span className="font-mono text-[10px] text-slate-300">· {batch.id}</span>
+            {settingsSummary(batch.settings, locale)}{" "}
+            <span className="font-mono text-[10px] text-slate-300">· {batch.id}</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {batch.zipUrl ? (
             <a className="btn-primary" href={batch.zipUrl} download>
-              <DownloadIcon size={17} /> Tải ZIP ({formatBytes(batch.zipBytes)})
+              <DownloadIcon size={17} /> {t("home.downloadZip", { size: formatBytes(batch.zipBytes, locale) })}
             </a>
           ) : (
             <span className="btn-primary cursor-not-allowed opacity-60">
               {active ? <SpinnerIcon size={16} /> : <AlertIcon size={16} />}
-              {active ? "Đang tạo ZIP…" : "Không có ZIP"}
+              {active ? t("detail.downloading") : t("home.noZip")}
             </span>
           )}
           <button type="button" className="btn-danger" disabled={deleting || active} onClick={remove}>
-            {deleting ? <SpinnerIcon size={16} /> : <TrashIcon size={16} />} Xoá lô
+            {deleting ? <SpinnerIcon size={16} /> : <TrashIcon size={16} />} {t("detail.delete")}
           </button>
         </div>
       </section>
@@ -117,10 +122,30 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
 
       <section className="mb-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {[
-          ["Dung lượng gốc", formatBytes(batch.totalInput), `${batch.fileCount} ảnh tải lên`],
-          ["Dung lượng ZIP", batch.totalOutput !== null ? formatBytes(batch.totalOutput) : "…", batch.zipBytes !== null ? `Tệp ZIP ${formatBytes(batch.zipBytes)}` : "Chưa tạo xong"],
-          ["Tiết kiệm", percent !== null ? `${percent}%` : "—", `${formatBytes(totalSaved)} giảm bớt`],
-          ["Kết quả", `${doneItems.length}/${batch.items.length}`, failedItems.length > 0 ? `${failedItems.length} ảnh lỗi` : "Tất cả thành công"],
+          [
+            t("detail.originalSize"),
+            formatBytes(batch.totalInput, locale),
+            t("detail.uploaded", { count: batch.fileCount }),
+          ],
+          [
+            t("detail.zipSize"),
+            batch.totalOutput !== null ? formatBytes(batch.totalOutput, locale) : "…",
+            batch.zipBytes !== null
+              ? t("detail.zipFile", { size: formatBytes(batch.zipBytes, locale) })
+              : t("detail.notReady"),
+          ],
+          [
+            t("detail.saved"),
+            percent !== null ? `${percent}%` : "—",
+            t("detail.savedHint", { size: formatBytes(totalSaved, locale) }),
+          ],
+          [
+            t("detail.results"),
+            `${doneItems.length}/${batch.items.length}`,
+            failedItems.length > 0
+              ? t("detail.failedCount", { count: failedItems.length })
+              : t("detail.allSucceeded"),
+          ],
         ].map(([label, value, hint], index) => (
           <div
             key={label}
@@ -135,15 +160,15 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
 
       <section className="card overflow-hidden">
         <div className="px-5 py-4">
-          <h2 className="text-[15px] font-semibold tracking-tight">Chi tiết ảnh</h2>
-          <p className="text-[11.5px] text-slate-400">Dung lượng, kích thước và định dạng đầu ra của từng ảnh</p>
+          <h2 className="text-[15px] font-semibold tracking-tight">{t("detail.imagesTitle")}</h2>
+          <p className="text-[11.5px] text-slate-400">{t("detail.imagesSubtitle")}</p>
         </div>
         <div className="detail-row table-head">
-          <span>Ảnh</span>
-          <span>Kích thước</span>
-          <span>Dung lượng</span>
-          <span>Định dạng</span>
-          <span>Trạng thái</span>
+          <span>{t("detail.columnImage")}</span>
+          <span>{t("detail.columnDimensions")}</span>
+          <span>{t("detail.columnSize")}</span>
+          <span>{t("detail.columnFormat")}</span>
+          <span>{t("detail.columnStatus")}</span>
         </div>
         {batch.items.map((item) => {
           const preview = item.thumbUrl ?? (item.assetId ? `/api/thumb/asset/${item.assetId}` : null);
@@ -162,30 +187,34 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
                 </div>
               </div>
               <div className="detail-cell">
-                <span className="cell-label">Kích thước</span>
+                <span className="cell-label">{t("detail.columnDimensions")}</span>
                 <span>{formatDimensions(item.inputWidth, item.inputHeight)}</span>
                 {item.outputWidth ? <span className="text-[10.5px] text-slate-400">→ {formatDimensions(item.outputWidth, item.outputHeight)}</span> : null}
               </div>
               <div className="detail-cell">
-                <span className="cell-label">Dung lượng</span>
-                <span>{formatBytes(item.inputBytes)}</span>
-                {item.outputBytes !== null ? <span className="text-[10.5px] text-slate-400">→ {formatBytes(item.outputBytes)}</span> : null}
+                <span className="cell-label">{t("detail.columnSize")}</span>
+                <span>{formatBytes(item.inputBytes, locale)}</span>
+                {item.outputBytes !== null ? <span className="text-[10.5px] text-slate-400">→ {formatBytes(item.outputBytes, locale)}</span> : null}
                 {itemPercent !== null && itemPercent > 0 ? <span className="save-pill">−{itemPercent}%</span> : null}
               </div>
               <div className="detail-cell">
-                <span className="cell-label">Định dạng</span>
+                <span className="cell-label">{t("detail.columnFormat")}</span>
                 {item.outputFormat ? (
-                  <span className="format-tag">{FORMAT_NAMES[item.outputFormat] ?? item.outputFormat}</span>
+                  <span className="format-tag">{formatName(locale, item.outputFormat)}</span>
                 ) : (
                   <span className="text-slate-400">—</span>
                 )}
-                {item.quality !== null ? <span className="text-[10.5px] text-slate-400">chất lượng {item.quality}</span> : null}
+                {item.quality !== null ? (
+                  <span className="text-[10.5px] text-slate-400">
+                    {t("detail.quality", { quality: item.quality })}
+                  </span>
+                ) : null}
                 {item.durationMs !== null ? <span className="text-[10.5px] text-slate-400">{item.durationMs} ms</span> : null}
               </div>
               <div className="detail-cell">
                 <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${item.status === "done" ? "text-emerald-600" : item.status === "error" ? "text-red-500" : "text-indigo-600"}`}>
                   {item.status === "done" ? <CheckIcon size={14} /> : item.status === "error" ? <AlertIcon size={14} /> : <SpinnerIcon size={13} />}
-                  {batchStatusLabel(item.status)}
+                  {batchStatusLabel(item.status, locale)}
                 </span>
                 {item.error ? <span className="text-[10.5px] text-red-500">{item.error}</span> : null}
               </div>
@@ -197,8 +226,7 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
       <section className="mt-5 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-400">
         <ZipIcon size={19} className="mt-0.5 shrink-0 text-amber-500" />
         <p className="text-[11.5px] leading-relaxed">
-          Tệp ZIP chứa {doneItems.length} ảnh đã nén, giữ tên gốc (kèm hậu tố nếu có). Ảnh gốc vẫn lưu trên máy chủ
-          đến khi hết hạn {boot.limits.retentionDays} ngày hoặc bạn xoá lô.
+          {t("detail.footer", { count: doneItems.length, days: boot.limits.retentionDays })}
         </p>
       </section>
     </Shell>

@@ -100,12 +100,12 @@ export function normalizeSettings(input: unknown): Settings {
 export function assertFormatAvailable(settings: Settings, capabilities: Capabilities): void {
   if (settings.format === "avif" && !capabilities.avif) {
     throw new ValidationError(
-      "AVIF chưa được hỗ trợ trên máy chủ này (cần codec AV1 của hệ điều hành). Hãy chọn WebP, JPEG hoặc PNG.",
+      "AVIF is not supported on this server (it needs the OS AV1 codec). Choose WebP, JPEG or PNG.",
     );
   }
   if (settings.format === "heic" && !capabilities.heic) {
     throw new ValidationError(
-      "HEIC chưa được hỗ trợ trên máy chủ này (cần codec HEIC của hệ điều hành). Hãy chọn WebP, JPEG hoặc PNG.",
+      "HEIC is not supported on this server (it needs the OS HEIC codec). Choose WebP, JPEG or PNG.",
     );
   }
 }

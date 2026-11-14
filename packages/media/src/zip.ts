@@ -87,7 +87,7 @@ export class ZipWriter {
    */
   add(name: string, data: Uint8Array): Promise<void> {
     return this.lock.run(async () => {
-      if (this.closed) throw new Error("ZIP đã được đóng");
+      if (this.closed) throw new Error("ZIP archive is already closed");
       const encodedName = new TextEncoder().encode(name);
       const crc = crc32(data);
       const { time, date } = dosDateTime(new Date());

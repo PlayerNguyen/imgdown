@@ -1,5 +1,15 @@
 import { join } from "node:path";
-import { stripControlChars, type AssetDTO, type BootData, type Settings } from "@imgdown/shared";
+import {
+  DEFAULT_LOCALE,
+  LOCALE_COOKIE,
+  isLocale,
+  stripControlChars,
+  translate,
+  type AssetDTO,
+  type BootData,
+  type Locale,
+  type Settings,
+} from "@imgdown/shared";
 import { ensureClientBuild } from "../scripts/build";
 import {
   THUMB_DIR,
@@ -38,21 +48,40 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST ?? "0.0.0.0";
 const MAX_FILE_BYTES = LIMITS.maxFileMB * 1024 * 1024;
 const ASSET_VERSION = Date.now().toString(36);
+const FALLBACK_LOCALE: Locale = isLocale(process.env.DEFAULT_LOCALE)
+  ? process.env.DEFAULT_LOCALE
+  : DEFAULT_LOCALE;
+
+function readCookie(header: string | null, name: string): string | null {
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+}
+
+function requestLocale(request: Request): Locale {
+  const value = readCookie(request.headers.get("cookie"), LOCALE_COOKIE);
+  return isLocale(value) ? value : FALLBACK_LOCALE;
+}
 
 const capabilities = await getCapabilities();
 await ensureClientBuild();
 markStaleBatchesFailed();
 void cleanupExpired(LIMITS.retentionDays)
   .then(({ batches, assets }) => {
-    if (batches || assets) process.stdout.write(`[cleanup] đã dọn ${batches} lô, ${assets} ảnh hết hạn\n`);
+    if (batches || assets) {
+      process.stdout.write(`[cleanup] removed ${batches} expired batches and ${assets} unused images\n`);
+    }
     return undefined;
   })
-  .catch((error) => console.warn("[cleanup] lỗi dọn dữ liệu:", error));
+  .catch((error) => console.warn("[cleanup] cleanup failed:", error));
 
 setInterval(
   () => {
     void cleanupExpired(LIMITS.retentionDays).catch((error) =>
-      console.warn("[cleanup] lỗi dọn dữ liệu:", error),
+      console.warn("[cleanup] cleanup failed:", error),
     );
   },
   6 * 60 * 60 * 1000,
@@ -87,8 +116,9 @@ function effectiveSettings(): Settings {
   return settings;
 }
 
-function baseBoot() {
+function baseBoot(locale: Locale) {
   return {
+    locale,
     stats: getStats(),
     settings: effectiveSettings(),
     capabilities,
@@ -96,45 +126,45 @@ function baseBoot() {
   };
 }
 
-function renderHome(): Response {
-  const boot: BootData = { page: "home", ...baseBoot(), batches: listBatches(4) };
+function renderHome(locale: Locale): Response {
+  const boot: BootData = { page: "home", ...baseBoot(locale), batches: listBatches(4) };
   return html(renderDocument(boot, ASSET_VERSION));
 }
 
-function renderHistory(): Response {
-  const boot: BootData = { page: "history", ...baseBoot(), batches: listBatches(100) };
+function renderHistory(locale: Locale): Response {
+  const boot: BootData = { page: "history", ...baseBoot(locale), batches: listBatches(100) };
   return html(renderDocument(boot, ASSET_VERSION));
 }
 
-function renderBatchPage(id: string): Response {
+function renderBatchPage(id: string, locale: Locale): Response {
   const batch = getBatch(id);
-  if (!batch) return html(renderNotFound("Không tìm thấy lô ảnh này."), 404);
-  const boot: BootData = { page: "batch", ...baseBoot(), batches: [], batch };
+  if (!batch) return html(renderNotFound(locale, translate(locale, "page.notFoundBatch")), 404);
+  const boot: BootData = { page: "batch", ...baseBoot(locale), batches: [], batch };
   return html(renderDocument(boot, ASSET_VERSION));
 }
 
 function cleanFileName(name: string): string {
   return (
-    stripControlChars(name || "anh")
+    stripControlChars(name || "image")
       .replaceAll(/[\\/]/gu, "-")
       .trim()
-      .slice(0, 180) || "anh"
+      .slice(0, 180) || "image"
   );
 }
 
-async function handleUpload(request: Request): Promise<Response> {
+async function handleUpload(request: Request, locale: Locale): Promise<Response> {
   let form: FormData;
   try {
     form = await request.formData();
   } catch {
-    return badRequest("Không đọc được dữ liệu tải lên.");
+    return badRequest(translate(locale, "api.uploadUnreadable"));
   }
 
   const files = [...form.getAll("file"), ...form.getAll("files")].filter(
     (entry): entry is File => entry instanceof File,
   );
-  if (files.length === 0) return badRequest("Chưa chọn ảnh nào.");
-  if (files.length > 10) return badRequest("Mỗi lần chỉ tải lên tối đa 10 ảnh.");
+  if (files.length === 0) return badRequest(translate(locale, "api.noFiles"));
+  if (files.length > 10) return badRequest(translate(locale, "api.tooManyFiles"));
 
   const assets: AssetDTO[] = [];
   const errors: { name: string; error: string }[] = [];
@@ -143,9 +173,9 @@ async function handleUpload(request: Request): Promise<Response> {
     const displayName = cleanFileName(file.name);
     try {
       if (file.size > MAX_FILE_BYTES) {
-        throw new ValidationError(`Ảnh vượt giới hạn ${LIMITS.maxFileMB} MB.`);
+        throw new ValidationError(translate(locale, "api.fileTooLarge", { max: LIMITS.maxFileMB }));
       }
-      if (file.size === 0) throw new ValidationError("Tệp rỗng.");
+      if (file.size === 0) throw new ValidationError(translate(locale, "api.emptyFile"));
 
       const bytes = new Uint8Array(await file.arrayBuffer());
       const meta = await inspectImage(bytes);
@@ -157,7 +187,7 @@ async function handleUpload(request: Request): Promise<Response> {
       const hasThumb = await writeThumbnail(bytes, thumbPath)
         .then(() => true)
         .catch((error) => {
-          console.warn(`[upload] thumbnail thất bại cho ${displayName}:`, error);
+          console.warn(`[upload] thumbnail failed for ${displayName}:`, error);
           return false;
         });
 
@@ -200,36 +230,40 @@ async function handleUpload(request: Request): Promise<Response> {
   return json({ assets, errors });
 }
 
-async function createBatchFromRequest(request: Request): Promise<Response> {
+async function createBatchFromRequest(request: Request, locale: Locale): Promise<Response> {
   const body = (await request.json().catch(() => null)) as
     | { assetIds?: unknown; settings?: unknown }
     | null;
-  if (!body || !Array.isArray(body.assetIds)) return badRequest("Dữ liệu lô ảnh không hợp lệ.");
+  if (!body || !Array.isArray(body.assetIds)) {
+    return badRequest(translate(locale, "api.invalidBatch"));
+  }
 
   const assetIds = [...new Set(body.assetIds.filter((id): id is string => typeof id === "string"))];
-  if (assetIds.length === 0) return badRequest("Cần ít nhất một ảnh.");
+  if (assetIds.length === 0) return badRequest(translate(locale, "api.needImage"));
   if (assetIds.length > LIMITS.maxFiles) {
-    return badRequest(`Mỗi lô tối đa ${LIMITS.maxFiles} ảnh.`);
+    return badRequest(translate(locale, "api.tooManyImages", { max: LIMITS.maxFiles }));
   }
 
   const settings = normalizeSettings(body.settings);
   try {
     assertFormatAvailable(settings, capabilities);
   } catch (error) {
-    if (error instanceof ValidationError) return badRequest(error.message);
+    if (error instanceof ValidationError) {
+      return badRequest(
+        translate(locale, settings.format === "avif" ? "api.avifUnavailable" : "api.heicUnavailable"),
+      );
+    }
     throw error;
   }
 
   const found = new Map(getAssets(assetIds).map((asset) => [asset.id, asset]));
   if (found.size !== assetIds.length) {
-    return badRequest("Một số ảnh không còn trên máy chủ. Hãy tải lại ảnh đó.");
+    return badRequest(translate(locale, "api.missingAssets"));
   }
 
   const totalInput = assetIds.reduce((sum, id) => sum + (found.get(id)?.size ?? 0), 0);
   if (totalInput > MAX_TOTAL_BYTES) {
-    return badRequest(
-      `Tổng dung lượng ảnh vượt giới hạn ${LIMITS.maxTotalMB} MB mỗi lô. Hãy bớt ảnh rồi thử lại.`,
-    );
+    return badRequest(translate(locale, "api.totalTooLarge", { max: LIMITS.maxTotalMB }));
   }
 
   const batchId = crypto.randomUUID();
@@ -251,10 +285,11 @@ async function createBatchFromRequest(request: Request): Promise<Response> {
   return json({ batch }, 201);
 }
 
-function serveFile(path: string | null, type: string): Response {
-  if (!path) return json({ error: "Không tìm thấy." }, 404);
+function serveFile(path: string | null, type: string, locale: Locale): Response {
+  const missing = json({ error: translate(locale, "api.notFound") }, 404);
+  if (!path) return missing;
   const file = Bun.file(path);
-  if (!file.size) return json({ error: "Không tìm thấy." }, 404);
+  if (!file.size) return missing;
   return new Response(file, {
     headers: { "content-type": type, "cache-control": "public, max-age=31536000, immutable" },
   });
@@ -264,19 +299,19 @@ const pad = (value: number) => String(value).padStart(2, "0");
 
 function downloadName(createdAt: number): string {
   const date = new Date(createdAt);
-  return `imgnen-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(
+  return `imgdown-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(
     date.getHours(),
   )}${pad(date.getMinutes())}.zip`;
 }
 
-async function handleApi(request: Request, url: URL): Promise<Response> {
+async function handleApi(request: Request, url: URL, locale: Locale): Promise<Response> {
   const path = url.pathname;
 
-  if (path === "/api/assets" && request.method === "POST") return handleUpload(request);
+  if (path === "/api/assets" && request.method === "POST") return handleUpload(request, locale);
 
   if (path === "/api/settings" && request.method === "POST") {
     const body = (await request.json().catch(() => null)) as { settings?: unknown } | null;
-    if (!body) return badRequest("Dữ liệu cài đặt không hợp lệ.");
+    if (!body) return badRequest(translate(locale, "api.invalidSettings"));
     const settings = normalizeSettings(body.settings);
     if (
       (settings.format === "avif" && !capabilities.avif) ||
@@ -293,21 +328,23 @@ async function handleApi(request: Request, url: URL): Promise<Response> {
     return json({ batches: listBatches(limit) });
   }
 
-  if (path === "/api/batches" && request.method === "POST") return createBatchFromRequest(request);
+  if (path === "/api/batches" && request.method === "POST") {
+    return createBatchFromRequest(request, locale);
+  }
 
   const batchMatch = path.match(/^\/api\/batches\/([a-zA-Z0-9-]+)$/);
   if (batchMatch) {
     const id = batchMatch[1]!;
     if (request.method === "GET") {
       const batch = getBatch(id);
-      if (!batch) return json({ error: "Không tìm thấy lô ảnh." }, 404);
+      if (!batch) return json({ error: translate(locale, "api.batchNotFound") }, 404);
       return json({ batch });
     }
     if (request.method === "DELETE") {
       const row = getBatchRow(id);
-      if (!row) return json({ error: "Không tìm thấy lô ảnh." }, 404);
+      if (!row) return json({ error: translate(locale, "api.batchNotFound") }, 404);
       if (row.status === "queued" || row.status === "processing") {
-        return json({ error: "Lô ảnh đang xử lý, vui lòng đợi xong rồi xoá." }, 409);
+        return json({ error: translate(locale, "api.batchProcessing") }, 409);
       }
       await deleteBatchFiles(id);
       return json({ ok: true });
@@ -317,9 +354,9 @@ async function handleApi(request: Request, url: URL): Promise<Response> {
   const downloadMatch = path.match(/^\/api\/batches\/([a-zA-Z0-9-]+)\/download$/);
   if (downloadMatch && request.method === "GET") {
     const row = getBatchRow(downloadMatch[1]!);
-    if (!row?.zip_path) return json({ error: "Tệp ZIP chưa sẵn sàng." }, 404);
+    if (!row?.zip_path) return json({ error: translate(locale, "api.zipNotReady") }, 404);
     const file = Bun.file(row.zip_path);
-    if (!(await file.exists())) return json({ error: "Tệp ZIP đã bị xoá." }, 404);
+    if (!(await file.exists())) return json({ error: translate(locale, "api.zipDeleted") }, 404);
     return new Response(file, {
       headers: {
         "content-type": "application/zip",
@@ -332,15 +369,15 @@ async function handleApi(request: Request, url: URL): Promise<Response> {
 
   const assetThumb = path.match(/^\/api\/thumb\/asset\/([a-zA-Z0-9-]+)$/);
   if (assetThumb && request.method === "GET") {
-    return serveFile(getAsset(assetThumb[1]!)?.thumb_path ?? null, "image/webp");
+    return serveFile(getAsset(assetThumb[1]!)?.thumb_path ?? null, "image/webp", locale);
   }
 
   const itemThumb = path.match(/^\/api\/thumb\/item\/([a-zA-Z0-9-]+)$/);
   if (itemThumb && request.method === "GET") {
-    return serveFile(getItemThumbPath(itemThumb[1]!), "image/webp");
+    return serveFile(getItemThumbPath(itemThumb[1]!), "image/webp", locale);
   }
 
-  return json({ error: "Không tìm thấy API này." }, 404);
+  return json({ error: translate(locale, "api.unknown") }, 404);
 }
 
 const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
@@ -358,9 +395,10 @@ const server = Bun.serve({
   async fetch(request) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const locale = requestLocale(request);
 
     try {
-      if (path.startsWith("/api/")) return await handleApi(request, url);
+      if (path.startsWith("/api/")) return await handleApi(request, url, locale);
 
       if (path === "/static/app.js" || path === "/static/styles.css") {
         const name = path.slice("/static/".length);
@@ -380,27 +418,29 @@ const server = Bun.serve({
         return new Response("Method not allowed", { status: 405 });
       }
 
-      if (path === "/") return renderHome();
-      if (path === "/history") return renderHistory();
+      if (path === "/") return renderHome(locale);
+      if (path === "/history") return renderHistory(locale);
       if (path.startsWith("/history/")) {
         const id = decodeURIComponent(path.slice("/history/".length));
-        if (!id || id.includes("/")) return html(renderNotFound(), 404);
-        return renderBatchPage(id);
+        if (!id || id.includes("/")) return html(renderNotFound(locale), 404);
+        return renderBatchPage(id, locale);
       }
       if (path === "/health") return json({ ok: true, uptime: process.uptime() });
 
-      return html(renderNotFound(), 404);
+      return html(renderNotFound(locale), 404);
     } catch (error) {
       console.error(`[server] ${request.method} ${path}:`, error);
-      if (path.startsWith("/api/")) return json({ error: "Máy chủ gặp lỗi. Vui lòng thử lại." }, 500);
-      return html(renderNotFound("Máy chủ gặp lỗi khi hiển thị trang."), 500);
+      if (path.startsWith("/api/")) {
+        return json({ error: translate(locale, "api.serverError") }, 500);
+      }
+      return html(renderNotFound(locale, translate(locale, "page.serverError")), 500);
     }
   },
   error(error) {
-    console.error("[server] lỗi không xử lý:", error);
-    return json({ error: "Máy chủ gặp lỗi." }, 500);
+    console.error("[server] unhandled error:", error);
+    return json({ error: translate(FALLBACK_LOCALE, "api.serverErrorShort") }, 500);
   },
 });
 
-process.stdout.write(`\n  ImgDown đang chạy tại http://localhost:${server.port}\n`);
+process.stdout.write(`\n  ImgDown is running at http://localhost:${server.port}\n`);
 process.stdout.write(`  Bun ${Bun.version} · AVIF ${capabilities.avif ? "✓" : "✗"} · HEIC ${capabilities.heic ? "✓" : "✗"}\n`);
