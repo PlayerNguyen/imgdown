@@ -1,4 +1,4 @@
-import { OUTPUT_FORMATS, type Capabilities, type OutputFormat, type Settings } from "@imgdown/shared";
+import { OUTPUT_FORMATS, stripControlChars, type Capabilities, type OutputFormat, type Settings } from "@imgdown/shared";
 
 export const DEFAULT_SETTINGS: Settings = {
   format: "auto",
@@ -13,7 +13,12 @@ export const DEFAULT_SETTINGS: Settings = {
   keepLocation: false,
 };
 
+/** Error thrown when input settings are invalid. */
 export class ValidationError extends Error {
+  /**
+   * Creates a validation error with a user-facing message.
+   * @param message - Human-readable error message.
+   */
   constructor(message: string) {
     super(message);
     this.name = "ValidationError";
@@ -33,20 +38,28 @@ function toBool(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
-/** Cleans a user-supplied filename suffix while keeping a leading "-" or "_" separator. */
+/**
+ * Cleans a user-supplied filename suffix while keeping a leading "-" or "_" separator.
+ * @param value - Input value.
+ * @returns The sanitized filename suffix.
+ */
 export function sanitizeSuffix(value: unknown): string {
   if (typeof value !== "string") return "";
-  return value
+  return stripControlChars(value)
     .normalize("NFC")
     .trim()
-    .replaceAll(/[\\/:*?"<>|\u0000-\u001F]/gu, "")
+    .replaceAll(/[\\/:*?"<>|]/gu, "")
     .replaceAll(/\s+/gu, "-")
     .replaceAll(/-{2,}/gu, "-")
     .replaceAll(/\.+$/gu, "")
     .slice(0, 24);
 }
 
-/** Clamps and validates settings coming from the client or SQLite. */
+/**
+ * Clamps and validates settings coming from the client or SQLite.
+ * @param input - Input value.
+ * @returns The normalized settings.
+ */
 export function normalizeSettings(input: unknown): Settings {
   const raw = (input ?? {}) as Record<string, unknown>;
   const format = OUTPUT_FORMATS.includes(raw.format as OutputFormat)
@@ -79,7 +92,11 @@ export function normalizeSettings(input: unknown): Settings {
   };
 }
 
-/** Throws when the requested AVIF/HEIC encoder is missing on this host. */
+/**
+ * Throws when the requested AVIF/HEIC encoder is missing on this host.
+ * @param settings - Compression settings.
+ * @param capabilities - Encoder capabilities for this host.
+ */
 export function assertFormatAvailable(settings: Settings, capabilities: Capabilities): void {
   if (settings.format === "avif" && !capabilities.avif) {
     throw new ValidationError(
@@ -95,7 +112,13 @@ export function assertFormatAvailable(settings: Settings, capabilities: Capabili
 
 export type ResolvedFormat = "jpeg" | "png" | "webp" | "avif" | "heic";
 
-/** Maps the requested output option and source format to an actual encoder. */
+/**
+ * Maps the requested output option and source format to an actual encoder.
+ * @param requested - Requested output format.
+ * @param sourceFormat - Source image format.
+ * @param capabilities - Encoder capabilities for this host.
+ * @returns The encoder chosen for the output.
+ */
 export function resolveFormat(
   requested: OutputFormat,
   sourceFormat: string,
@@ -122,7 +145,11 @@ const EXT_BY_FORMAT: Record<ResolvedFormat, string> = {
   heic: "heic",
 };
 
-/** Returns the file extension for an encoder. */
+/**
+ * Returns the file extension for an encoder.
+ * @param format - Output format.
+ * @returns The file extension without a leading dot.
+ */
 export function extensionFor(format: ResolvedFormat): string {
   return EXT_BY_FORMAT[format];
 }

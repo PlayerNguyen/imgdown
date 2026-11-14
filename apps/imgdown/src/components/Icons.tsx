@@ -17,7 +17,12 @@ function iconProps({ size = 20, ...props }: IconProps) {
   };
 }
 
-/** Renders the ImgDown gradient logo mark. */
+/**
+ * Renders the ImgDown gradient logo mark.
+ * @param root0 - Component props.
+ * @param root0.size - Icon size in pixels.
+ * @returns The rendered React element.
+ */
 export function LogoMark({ size = 30, ...props }: IconProps) {
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden {...props}>
@@ -40,7 +45,11 @@ export function LogoMark({ size = 30, ...props }: IconProps) {
   );
 }
 
-/** Renders an upload arrow icon. */
+/**
+ * Renders an upload arrow icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function UploadIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -50,7 +59,11 @@ export function UploadIcon(props: IconProps) {
   );
 }
 
-/** Renders a download arrow icon. */
+/**
+ * Renders a download arrow icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function DownloadIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -60,7 +73,11 @@ export function DownloadIcon(props: IconProps) {
   );
 }
 
-/** Renders a trash icon. */
+/**
+ * Renders a trash icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function TrashIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -71,7 +88,11 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
-/** Renders a close icon. */
+/**
+ * Renders a close icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function XIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -80,7 +101,11 @@ export function XIcon(props: IconProps) {
   );
 }
 
-/** Renders a checkmark icon. */
+/**
+ * Renders a checkmark icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function CheckIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -89,7 +114,11 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
-/** Renders a warning triangle icon. */
+/**
+ * Renders a warning triangle icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function AlertIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -99,7 +128,11 @@ export function AlertIcon(props: IconProps) {
   );
 }
 
-/** Renders a history clock icon. */
+/**
+ * Renders a history clock icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function HistoryIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -110,7 +143,11 @@ export function HistoryIcon(props: IconProps) {
   );
 }
 
-/** Renders a settings sliders icon. */
+/**
+ * Renders a settings sliders icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function SlidersIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -121,7 +158,11 @@ export function SlidersIcon(props: IconProps) {
   );
 }
 
-/** Renders a lightning bolt icon. */
+/**
+ * Renders a lightning bolt icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function ZapIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -130,7 +171,11 @@ export function ZapIcon(props: IconProps) {
   );
 }
 
-/** Renders a ZIP archive icon. */
+/**
+ * Renders a ZIP archive icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function ZipIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -141,7 +186,11 @@ export function ZipIcon(props: IconProps) {
   );
 }
 
-/** Renders a sparkle icon. */
+/**
+ * Renders a sparkle icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function SparkleIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -151,7 +200,11 @@ export function SparkleIcon(props: IconProps) {
   );
 }
 
-/** Renders a right arrow icon. */
+/**
+ * Renders a right arrow icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function ArrowRightIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -160,7 +213,11 @@ export function ArrowRightIcon(props: IconProps) {
   );
 }
 
-/** Renders an image placeholder icon. */
+/**
+ * Renders an image placeholder icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function ImageIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -171,7 +228,11 @@ export function ImageIcon(props: IconProps) {
   );
 }
 
-/** Renders a refresh icon. */
+/**
+ * Renders a refresh icon.
+ * @param props - Icon props.
+ * @returns The rendered React element.
+ */
 export function RefreshIcon(props: IconProps) {
   return (
     <svg {...iconProps(props)}>
@@ -181,7 +242,12 @@ export function RefreshIcon(props: IconProps) {
   );
 }
 
-/** Renders an animated spinner. */
+/**
+ * Renders an animated spinner.
+ * @param root0 - Component props.
+ * @param root0.size - Icon size in pixels.
+ * @returns The rendered React element.
+ */
 export function SpinnerIcon({ size = 18, ...props }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} className="animate-spin" aria-hidden {...props}>

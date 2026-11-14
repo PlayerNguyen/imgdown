@@ -8,7 +8,12 @@ import { api, errorMessage } from "../lib/client-api";
 
 const ACTIVE = new Set(["queued", "processing"]);
 
-/** History page listing batches with download/delete actions and live polling. */
+/**
+ * History page listing batches with download/delete actions and live polling.
+ * @param root0 - Component props.
+ * @param root0.boot - Page boot data.
+ * @returns The rendered React element.
+ */
 export function HistoryPage({ boot }: { boot: BootData }) {
   const [batches, setBatches] = useState<BatchDTO[]>(boot.batches);
   const [busyId, setBusyId] = useState<string | null>(null);

@@ -1,4 +1,9 @@
-/** Sends a JSON request and throws a readable Error when the API fails. */
+/**
+ * Sends a JSON request and throws a readable Error when the API fails.
+ * @param url - Request URL.
+ * @param init - Fetch options.
+ * @returns The parsed JSON response.
+ */
 export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
@@ -14,7 +19,11 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-/** Extracts a human-readable message from an unknown error. */
+/**
+ * Extracts a human-readable message from an unknown error.
+ * @param error - The caught error.
+ * @returns A readable error message.
+ */
 export function errorMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : "Có lỗi xảy ra, vui lòng thử lại.";
 }

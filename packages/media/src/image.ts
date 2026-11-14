@@ -35,7 +35,9 @@ const PROBE_PNG = Uint8Array.from(
 
 let capabilitiesPromise: Promise<Capabilities> | null = null;
 
-/** Detects once which OS-backed encoders (AVIF/HEIC) are available. */
+/** Detects once which OS-backed encoders (AVIF/HEIC) are available.
+ * @returns Resolved encoder capabilities.
+ */
 export function getCapabilities(): Promise<Capabilities> {
   capabilitiesPromise ??= detectCapabilities();
   return capabilitiesPromise;
@@ -70,14 +72,23 @@ export type ImageMeta = {
   format: string;
 };
 
+/** Error thrown when an uploaded image cannot be decoded. */
 export class ImageValidationError extends Error {
+  /**
+   * Creates a validation error with a user-facing message.
+   * @param message - Human-readable error message.
+   */
   constructor(message: string) {
     super(message);
     this.name = "ImageValidationError";
   }
 }
 
-/** Reads metadata and rejects files that are not decodable images. */
+/**
+ * Reads metadata and rejects files that are not decodable images.
+ * @param data - Decoded image or binary bytes.
+ * @returns The decoded image metadata.
+ */
 export async function inspectImage(data: Uint8Array): Promise<ImageMeta> {
   try {
     const meta = await new Bun.Image(data, { maxPixels: MAX_PIXELS }).metadata();
@@ -115,7 +126,14 @@ type EncodeResult = {
   quality: number;
 };
 
-/** Resizes, encodes and (optionally) re-embeds EXIF for one image. */
+/**
+ * Resizes, encodes and (optionally) re-embeds EXIF for one image.
+ * @param data - Decoded image or binary bytes.
+ * @param source - Source image metadata.
+ * @param settings - Compression settings.
+ * @param capabilities - Encoder capabilities for this host.
+ * @returns The compressed image result.
+ */
 export async function compressImage(
   data: Uint8Array,
   source: ImageMeta,
@@ -227,7 +245,12 @@ async function encodeImage(
   };
 }
 
-/** Writes a small WebP thumbnail for previews. */
+/**
+ * Writes a small WebP thumbnail for previews.
+ * @param data - Decoded image or binary bytes.
+ * @param targetPath - Thumbnail output path.
+ * @param size - Maximum thumbnail edge in pixels.
+ */
 export async function writeThumbnail(data: Uint8Array, targetPath: string, size = 420): Promise<void> {
   await mkdir(dirname(targetPath), { recursive: true });
   await new Bun.Image(data, { maxPixels: MAX_PIXELS, autoOrient: true })
@@ -236,7 +259,11 @@ export async function writeThumbnail(data: Uint8Array, targetPath: string, size 
     .write(targetPath);
 }
 
-/** Converts pipeline errors into user-facing Vietnamese messages. */
+/**
+ * Converts pipeline errors into user-facing Vietnamese messages.
+ * @param error - The caught error.
+ * @returns A user-facing error message.
+ */
 export function formatError(error: unknown): string {
   if (error instanceof ImageValidationError) return error.message;
   const code = (error as { code?: string }).code;

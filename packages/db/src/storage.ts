@@ -25,7 +25,10 @@ async function removeFile(path: string | null | undefined): Promise<void> {
   }
 }
 
-/** Removes a batch, its ZIP, thumbs and now-unreferenced uploads. */
+/**
+ * Removes a batch, its ZIP, thumbs and now-unreferenced uploads.
+ * @param batchId - Batch identifier.
+ */
 export async function deleteBatchFiles(batchId: string): Promise<void> {
   const info = batchFileInfo(batchId);
   const zipPath = deleteBatchRow(batchId);
@@ -43,7 +46,11 @@ export async function deleteBatchFiles(batchId: string): Promise<void> {
   }
 }
 
-/** Deletes expired batches, abandoned uploads and orphan files. */
+/**
+ * Deletes expired batches, abandoned uploads and orphan files.
+ * @param retentionDays - Retention window in days.
+ * @returns Cleanup counts for batches and assets.
+ */
 export async function cleanupExpired(
   retentionDays: number,
 ): Promise<{ batches: number; assets: number }> {
@@ -76,7 +83,19 @@ async function removeOrphanFiles(): Promise<void> {
   }
 }
 
-/** Maps an uploaded asset row to the client-facing DTO. */
+/**
+ * Maps an uploaded asset row to the client-facing DTO.
+ * @param asset - Uploaded asset record.
+ * @param asset.id - Asset identifier.
+ * @param asset.name - Original file name.
+ * @param asset.size - File size in bytes.
+ * @param asset.width - Image width in pixels.
+ * @param asset.height - Image height in pixels.
+ * @param asset.format - Detected image format.
+ * @param asset.thumb_path - Thumbnail path.
+ * @param asset.created_at - Creation timestamp.
+ * @returns The client-facing asset DTO.
+ */
 export function assetToDTO(asset: {
   id: string;
   name: string;

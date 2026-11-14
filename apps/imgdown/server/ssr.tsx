@@ -21,7 +21,12 @@ function safeJson(data: unknown): string {
     .replaceAll("\u2029", "\\u2029");
 }
 
-/** Renders the full document with React SSR and serialized boot data. */
+/**
+ * Renders the full document with React SSR and serialized boot data.
+ * @param boot - Page boot data.
+ * @param version - Asset version used for cache busting.
+ * @returns The complete HTML document.
+ */
 export function renderDocument(boot: BootData, version: string): string {
   const html = renderToString(<App boot={boot} />);
   const title = TITLES[boot.page];
@@ -47,7 +52,11 @@ export function renderDocument(boot: BootData, version: string): string {
 </html>`;
 }
 
-/** Renders the standalone 404 page. */
+/**
+ * Renders the standalone 404 page.
+ * @param message - Human-readable message.
+ * @returns A standalone 404 HTML document.
+ */
 export function renderNotFound(message = "Không tìm thấy trang này."): string {
   return `<!doctype html>
 <html lang="vi">

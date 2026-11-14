@@ -1,102 +1,152 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": [
+    "eslint",
     "typescript",
     "unicorn",
+    "oxc",
     "react",
+    "react-perf",
     "jsx-a11y",
     "import",
     "promise",
-    "node"
+    "node",
+    "jsdoc"
   ],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
-    "pedantic": "warn",
-    "perf": "off",
-    "style": "off"
+    "perf": "warn",
+    "pedantic": "off",
+    "style": "off",
+    "restriction": "off",
+    "nursery": "off"
   },
   "env": {
     "browser": true,
     "node": true,
     "es2024": true
   },
-  "rules": {
-    "no-console": "off",
-    "no-magic-numbers": "off",
-    "no-ternary": "off",
-    "no-nested-ternary": "off",
-    "no-negated-condition": "off",
-    "no-continue": "off",
-    "no-plusplus": "off",
-    "no-await-in-loop": "off",
-    "no-underscore-dangle": "off",
-    "id-length": "off",
-    "max-lines": "off",
-    "max-lines-per-function": "off",
-    "max-statements": "off",
-    "max-depth": "off",
-    "max-params": "off",
-    "sort-keys": "off",
-    "sort-imports": "off",
-    "func-style": "off",
-    "one-var": "off",
-    "curly": "off",
-    "init-declarations": "off",
-    "prefer-destructuring": "off",
-    "prefer-spread": "off",
-    "prefer-global-this": "off",
-    "prefer-await-to-then": "off",
-    "prefer-named-capture-group": "off",
-    "prefer-tag-over-role": "off",
-    "unicorn/filename-case": "off",
-    "unicorn/no-null": "off",
-    "unicorn/prefer-top-level-await": "off",
-    "unicorn/explicit-length-check": "off",
-    "unicorn/catch-error-name": "off",
-    "promise/avoid-new": "off",
-    "import/no-named-export": "off",
-    "typescript/consistent-type-definitions": "off",
-    "typescript/no-explicit-any": "error",
-    "typescript/no-non-null-assertion": "off",
-    "react/react-in-jsx-scope": "off",
-    "react/function-component-definition": "off",
-    "react/jsx-max-depth": "off",
-    "react/jsx-props-no-spreading": "off",
-    "jsx-a11y/no-noninteractive-element-interactions": "off",
-    "jsx-a11y/click-events-have-key-events": "off",
-    "jsx-a11y/no-static-element-interactions": "off",
-    "require-unicode-regexp": "off",
-    "unicorn/no-negated-condition": "off",
-    "unicorn/no-nested-ternary": "off",
-    "unicorn/prefer-add-event-listener": "off",
-    "unicorn/prefer-spread": "off",
-    "unicorn/prefer-global-this": "off",
-    "react/exhaustive-effect-dependencies": "off",
-    "react/refs": "off",
-    "jsx-a11y/prefer-tag-over-role": "off",
-    "promise/prefer-await-to-then": "off",
-    "unicorn/prefer-string-replace-all": "off",
-    "unicorn/prefer-code-point": "off",
-    "unicorn/no-immediate-mutation": "off",
-    "unicorn/prefer-query-selector": "off",
-    "unicorn/prefer-number-coercion": "off",
-    "unicorn/consistent-function-scoping": "off",
-    "unicorn/no-useless-undefined": "off",
-    "unicorn/no-array-callback-reference": "off",
-    "unicorn/escape-case": "off",
-    "eslint/max-classes-per-file": "off",
-    "eslint/require-await": "off",
-    "eslint/no-inline-comments": "off",
-    "eslint/no-control-regex": "off",
-    "no-control-regex": "off",
-    "max-classes-per-file": "off"
+  "settings": {
+    "react": {
+      "version": "19.3"
+    }
   },
+  "rules": {
+    "eslint/no-console": [
+      "warn",
+      {
+        "allow": [
+          "warn",
+          "error"
+        ]
+      }
+    ],
+    "eslint/no-debugger": "error",
+    "eslint/no-unused-vars": "off",
+    "typescript/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }
+    ],
+    "typescript/no-explicit-any": "warn",
+    "typescript/consistent-type-imports": [
+      "error",
+      {
+        "prefer": "type-imports",
+        "fixStyle": "inline-type-imports"
+      }
+    ],
+    "typescript/no-floating-promises": "error",
+    "typescript/await-thenable": "error",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "kebabCase": true,
+          "pascalCase": true
+        }
+      }
+    ],
+    "unicorn/no-null": "off",
+    "import/no-cycle": "error",
+    "import/no-duplicates": "error",
+    "react/react-in-jsx-scope": "off",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "eslint/no-underscore-dangle": [
+      "error",
+      {
+        "allow": [
+          "__BOOT__"
+        ]
+      }
+    ],
+    "jsdoc/require-param": "error",
+    "jsdoc/require-param-description": "error",
+    "jsdoc/require-returns": "error",
+    "jsdoc/require-returns-description": "error",
+    "jsdoc/check-tag-names": "error",
+    "jsdoc/empty-tags": "error",
+    "jsdoc-js/require-jsdoc": [
+      "error",
+      {
+        "publicOnly": true,
+        "require": {
+          "FunctionDeclaration": true,
+          "FunctionExpression": true,
+          "ArrowFunctionExpression": true,
+          "ClassDeclaration": true,
+          "MethodDefinition": true
+        }
+      }
+    ],
+    "jsdoc-js/require-description": "error",
+    "jsdoc-js/check-param-names": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts",
+        "**/*.spec.tsx"
+      ],
+      "plugins": [
+        "vitest"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "no-console": "off"
+      }
+    },
+    {
+      "files": [
+        "*.config.ts",
+        "*.config.js",
+        "*.config.mjs"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    ".next/**",
+    "coverage/**",
     "node_modules/**",
-    "**/node_modules/**",
-    "**/public/**",
-    "**/data/**",
-    "reports/**"
+    "apps/imgdown/public/**",
+    "**/data/**"
+  ],
+  "jsPlugins": [
+    {
+      "name": "jsdoc-js",
+      "specifier": "eslint-plugin-jsdoc"
+    }
   ]
 }

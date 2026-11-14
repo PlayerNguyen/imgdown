@@ -2,7 +2,14 @@ import type { ReactNode } from "react";
 import type { Limits, Page } from "@imgdown/shared";
 import { HistoryIcon, LogoMark, ZapIcon } from "./Icons";
 
-/** Shared header, page container and footer for every SSR page. */
+/**
+ * Shared header, page container and footer for every SSR page.
+ * @param root0 - Component props.
+ * @param root0.active - Currently active page.
+ * @param root0.limits - Configured runtime limits.
+ * @param root0.children - Child content.
+ * @returns The rendered React element.
+ */
 export function Shell({
   active,
   limits,

@@ -15,7 +15,12 @@ const CRC_TABLE = (() => {
   return table;
 })();
 
-/** Computes a ZIP/PNG-compatible CRC32 checksum. */
+/**
+ * Computes a ZIP/PNG-compatible CRC32 checksum.
+ * @param data - Decoded image or binary bytes.
+ * @param seed - Initial CRC value.
+ * @returns The CRC32 checksum.
+ */
 export function crc32(data: Uint8Array, seed = 0): number {
   let c = (seed ^ 0xffffffff) >>> 0;
   for (let i = 0; i < data.length; i++) c = CRC_TABLE[(c ^ data[i]!) & 0xff]! ^ (c >>> 8);
@@ -66,11 +71,20 @@ export class ZipWriter {
   private closed = false;
   private lock = new Mutex();
 
+  /**
+   * Creates a writer for a new ZIP archive.
+   * @param path - ZIP archive output path.
+   */
   constructor(private readonly path: string) {
     this.sink = Bun.file(path).writer();
   }
 
-  /** Appends one stored entry; safe to call concurrently. */
+  /**
+   * Appends one stored entry; safe to call concurrently.
+   * @param name - ZIP entry name.
+   * @param data - Decoded image or binary bytes.
+   * @returns A promise resolved when the entry is written.
+   */
   add(name: string, data: Uint8Array): Promise<void> {
     return this.lock.run(async () => {
       if (this.closed) throw new Error("ZIP đã được đóng");
@@ -151,6 +165,10 @@ export class ZipWriter {
     });
   }
 
+  /**
+   * Returns the number of bytes written to the ZIP archive.
+   * @returns Number of bytes written so far.
+   */
   get bytesWritten(): number {
     return this.offset;
   }

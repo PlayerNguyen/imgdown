@@ -15,7 +15,12 @@ import { api, errorMessage } from "../lib/client-api";
 
 const ACTIVE = new Set(["queued", "processing"]);
 
-/** Shows batch settings, savings and per-image results. */
+/**
+ * Shows batch settings, savings and per-image results.
+ * @param root0 - Component props.
+ * @param root0.boot - Page boot data.
+ * @returns The rendered React element.
+ */
 export function BatchDetailPage({ boot }: { boot: BootData }) {
   const [batch, setBatch] = useState<BatchDTO>(boot.batch!);
   const [deleting, setDeleting] = useState(false);
@@ -41,9 +46,8 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-    // Activity is re-read from every poll result; only the id should restart it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batch.id]);
+    // Status changes (processing → done/error) restart the effect and stop polling.
+  }, [batch.id, batch.status]);
 
   const remove = async () => {
     if (!globalThis.confirm("Xoá lô ảnh này cùng tệp ZIP? Thao tác không thể hoàn tác.")) return;
@@ -106,9 +110,9 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
         </div>
       ) : null}
       {batch.error ? (
-        <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[13px] text-amber-700" role="status">
+        <output className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[13px] text-amber-700">
           <AlertIcon size={17} className="shrink-0" /> {batch.error}
-        </div>
+        </output>
       ) : null}
 
       <section className="mb-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
@@ -134,7 +138,7 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
           <h2 className="text-[15px] font-semibold tracking-tight">Chi tiết ảnh</h2>
           <p className="text-[11.5px] text-slate-400">Dung lượng, kích thước và định dạng đầu ra của từng ảnh</p>
         </div>
-        <div className="detail-row table-head" role="row">
+        <div className="detail-row table-head">
           <span>Ảnh</span>
           <span>Kích thước</span>
           <span>Dung lượng</span>
@@ -145,7 +149,7 @@ export function BatchDetailPage({ boot }: { boot: BootData }) {
           const preview = item.thumbUrl ?? (item.assetId ? `/api/thumb/asset/${item.assetId}` : null);
           const itemPercent = savedPercent(item.inputBytes, item.outputBytes);
           return (
-            <div key={item.id} className={`detail-row ${item.status === "error" ? "bg-red-50/40" : ""}`} role="row">
+            <div key={item.id} className={`detail-row ${item.status === "error" ? "bg-red-50/40" : ""}`}>
               <div className="detail-file flex min-w-0 items-center gap-2.5">
                 <div className="thumb size-11 rounded-lg">
                   {preview ? <img src={preview} alt="" loading="lazy" /> : <ImageIcon size={18} />}

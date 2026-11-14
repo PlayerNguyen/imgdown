@@ -126,7 +126,9 @@ type ItemRow = {
   created_at: number;
 };
 
-/** Reads the persisted default settings, falling back to built-in defaults. */
+/** Reads the persisted default settings, falling back to built-in defaults.
+ * @returns The persisted default settings.
+ */
 export function getSettings(): Settings {
   try {
     const row = db.query<{ value: string }, []>("SELECT value FROM settings WHERE key = 'defaults'").get();
@@ -137,7 +139,10 @@ export function getSettings(): Settings {
   }
 }
 
-/** Persists the default settings used by the next SSR render. */
+/**
+ * Persists the default settings used by the next SSR render.
+ * @param settings - Compression settings.
+ */
 export function saveSettings(settings: Settings): void {
   db.run(
     "INSERT INTO settings (key, value) VALUES ('defaults', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -145,7 +150,19 @@ export function saveSettings(settings: Settings): void {
   );
 }
 
-/** Inserts an uploaded asset record. */
+/**
+ * Inserts an uploaded asset record.
+ * @param asset - Uploaded asset record.
+ * @param asset.id - Asset identifier.
+ * @param asset.name - Original file name.
+ * @param asset.format - Detected image format.
+ * @param asset.mime - Original MIME type.
+ * @param asset.size - File size in bytes.
+ * @param asset.width - Image width in pixels.
+ * @param asset.height - Image height in pixels.
+ * @param asset.storedPath - Path of the stored upload.
+ * @param asset.thumbPath - Path of the generated thumbnail.
+ */
 export function insertAsset(asset: {
   id: string;
   name: string;
@@ -175,19 +192,33 @@ export function insertAsset(asset: {
   );
 }
 
-/** Looks up one uploaded asset by id. */
+/**
+ * Looks up one uploaded asset by id.
+ * @param id - Record identifier.
+ * @returns The asset row, or `null` when it does not exist.
+ */
 export function getAsset(id: string): AssetRow | null {
   return db.query<AssetRow, [string]>("SELECT * FROM assets WHERE id = ?").get(id) ?? null;
 }
 
-/** Looks up multiple uploaded assets by id. */
+/**
+ * Looks up multiple uploaded assets by id.
+ * @param ids - Record identifiers.
+ * @returns The matching asset rows.
+ */
 export function getAssets(ids: string[]): AssetRow[] {
   if (ids.length === 0) return [];
   const placeholders = ids.map(() => "?").join(",");
   return db.query<AssetRow, string[]>(`SELECT * FROM assets WHERE id IN (${placeholders})`).all(...ids);
 }
 
-/** Creates a batch and its pending items in one transaction. */
+/**
+ * Creates a batch and its pending items in one transaction.
+ * @param batch - Batch creation payload.
+ * @param batch.id - Batch identifier.
+ * @param batch.settings - Compression settings for the batch.
+ * @param batch.items - Pending batch items.
+ */
 export function createBatch(batch: {
   id: string;
   settings: Settings;
@@ -232,7 +263,11 @@ export function createBatch(batch: {
   })();
 }
 
-/** Looks up a batch row by id. */
+/**
+ * Looks up a batch row by id.
+ * @param id - Record identifier.
+ * @returns The batch row, or `null` when it does not exist.
+ */
 export function getBatchRow(id: string): BatchRow | null {
   return db.query<BatchRow, [string]>("SELECT * FROM batches WHERE id = ?").get(id) ?? null;
 }
@@ -258,7 +293,11 @@ function itemToDTO(row: ItemRow): BatchItemDTO {
   };
 }
 
-/** Returns all items of a batch in insertion order. */
+/**
+ * Returns all items of a batch in insertion order.
+ * @param batchId - Batch identifier.
+ * @returns The batch items in insertion order.
+ */
 export function getBatchItems(batchId: string): BatchItemDTO[] {
   const rows = db
     .query<ItemRow, [string]>("SELECT * FROM batch_items WHERE batch_id = ? ORDER BY created_at, rowid")
@@ -283,14 +322,23 @@ function batchToDTO(row: BatchRow, items: BatchItemDTO[]): BatchDTO {
   };
 }
 
-/** Loads a full batch DTO, optionally without its items. */
+/**
+ * Loads a full batch DTO, optionally without its items.
+ * @param id - Record identifier.
+ * @param includeItems - Whether to include batch items.
+ * @returns The batch DTO, or `null` when it does not exist.
+ */
 export function getBatch(id: string, includeItems = true): BatchDTO | null {
   const row = getBatchRow(id);
   if (!row) return null;
   return batchToDTO(row, includeItems ? getBatchItems(id) : []);
 }
 
-/** Returns the thumbnail path of a processed item. */
+/**
+ * Returns the thumbnail path of a processed item.
+ * @param id - Record identifier.
+ * @returns The thumbnail path, or `null` when missing.
+ */
 export function getItemThumbPath(id: string): string | null {
   const row = db
     .query<{ thumb_path: string | null }, [string]>("SELECT thumb_path FROM batch_items WHERE id = ?")
@@ -298,7 +346,12 @@ export function getItemThumbPath(id: string): string | null {
   return row?.thumb_path ?? null;
 }
 
-/** Lists the newest batches, optionally including their items. */
+/**
+ * Lists the newest batches, optionally including their items.
+ * @param limit - Maximum number of batches.
+ * @param includeItems - Whether to include batch items.
+ * @returns The newest batches.
+ */
 export function listBatches(limit = 30, includeItems = false): BatchDTO[] {
   const rows = db
     .query<BatchRow, [number]>("SELECT * FROM batches ORDER BY created_at DESC LIMIT ?")
@@ -335,7 +388,23 @@ function updateColumns(
   db.run(`UPDATE ${table} SET ${columns.join(", ")} WHERE id = ?`, [...values, id]);
 }
 
-/** Updates selected columns of a batch item. */
+/**
+ * Updates selected columns of a batch item.
+ * @param id - Record identifier.
+ * @param patch - Fields to update.
+ * @param patch.status - New item status.
+ * @param patch.outputName - Output file name.
+ * @param patch.outputBytes - Output size in bytes.
+ * @param patch.inputWidth - Input width in pixels.
+ * @param patch.inputHeight - Input height in pixels.
+ * @param patch.outputWidth - Output width in pixels.
+ * @param patch.outputHeight - Output height in pixels.
+ * @param patch.outputFormat - Output format.
+ * @param patch.quality - Encoder quality.
+ * @param patch.durationMs - Processing duration in milliseconds.
+ * @param patch.error - Failure message.
+ * @param patch.thumbPath - Thumbnail path.
+ */
 export function updateItem(
   id: string,
   patch: {
@@ -369,7 +438,17 @@ export function updateItem(
   });
 }
 
-/** Updates selected columns of a batch. */
+/**
+ * Updates selected columns of a batch.
+ * @param id - Record identifier.
+ * @param patch - Fields to update.
+ * @param patch.status - New item status.
+ * @param patch.totalOutput - Total output size in bytes.
+ * @param patch.zipPath - ZIP archive path.
+ * @param patch.zipBytes - ZIP archive size in bytes.
+ * @param patch.error - Failure message.
+ * @param patch.finishedAt - Completion timestamp.
+ */
 export function updateBatch(
   id: string,
   patch: {
@@ -391,14 +470,22 @@ export function updateBatch(
   });
 }
 
-/** Deletes a batch row and returns its ZIP path, if any. */
+/**
+ * Deletes a batch row and returns its ZIP path, if any.
+ * @param id - Record identifier.
+ * @returns The ZIP path of the deleted batch, or `null`.
+ */
 export function deleteBatchRow(id: string): string | null {
   const row = getBatchRow(id);
   db.run("DELETE FROM batches WHERE id = ?", [id]);
   return row?.zip_path ?? null;
 }
 
-/** Returns thumbnail paths and asset ids belonging to a batch. */
+/**
+ * Returns thumbnail paths and asset ids belonging to a batch.
+ * @param batchId - Batch identifier.
+ * @returns Thumbnail paths and asset identifiers for the batch.
+ */
 export function batchFileInfo(batchId: string): { thumbPaths: string[]; assetIds: string[] } {
   const rows = db
     .query<{ thumb_path: string | null; asset_id: string | null }, [string]>(
@@ -411,7 +498,11 @@ export function batchFileInfo(batchId: string): { thumbPaths: string[]; assetIds
   };
 }
 
-/** Checks whether an asset is still referenced by any batch. */
+/**
+ * Checks whether an asset is still referenced by any batch.
+ * @param assetId - Asset identifier.
+ * @returns `true` when another batch still references the asset.
+ */
 export function assetIsReferenced(assetId: string): boolean {
   const row = db
     .query<{ count: number }, [string]>("SELECT COUNT(*) AS count FROM batch_items WHERE asset_id = ?")
@@ -419,7 +510,9 @@ export function assetIsReferenced(assetId: string): boolean {
   return (row?.count ?? 0) > 0;
 }
 
-/** Returns all thumbnail paths known to the database. */
+/** Returns all thumbnail paths known to the database.
+ * @returns All known thumbnail paths.
+ */
 export function allThumbPaths(): string[] {
   const assets = db
     .query<{ thumb_path: string | null }, []>("SELECT thumb_path FROM assets WHERE thumb_path IS NOT NULL")
@@ -434,7 +527,11 @@ export function allThumbPaths(): string[] {
     .filter((path): path is string => Boolean(path));
 }
 
-/** Returns uploads that no batch references and that are older than the cutoff. */
+/**
+ * Returns uploads that no batch references and that are older than the cutoff.
+ * @param olderThanMs - Cutoff timestamp in milliseconds.
+ * @returns Unreferenced assets older than the cutoff.
+ */
 export function unreferencedAssets(olderThanMs: number): AssetRow[] {
   return db
     .query<AssetRow, [number]>(
@@ -445,12 +542,17 @@ export function unreferencedAssets(olderThanMs: number): AssetRow[] {
     .all(olderThanMs);
 }
 
-/** Deletes an asset row. */
+/**
+ * Deletes an asset row.
+ * @param id - Record identifier.
+ */
 export function deleteAssetRow(id: string): void {
   db.run("DELETE FROM assets WHERE id = ?", [id]);
 }
 
-/** Aggregates lifetime file/savings statistics for the current database. */
+/** Aggregates lifetime file/savings statistics for the current database.
+ * @returns Aggregated statistics.
+ */
 export function getStats(): Stats {
   const row = db
     .query<{ files: number | null; saved: number | null; output: number | null }, []>(
@@ -471,12 +573,16 @@ export function getStats(): Stats {
   };
 }
 
-/** Returns every asset row, used by cleanup routines. */
+/** Returns every asset row, used by cleanup routines.
+ * @returns All asset rows.
+ */
 export function allAssetRows(): AssetRow[] {
   return db.query<AssetRow, []>("SELECT * FROM assets").all();
 }
 
-/** Returns every batch row, used by cleanup routines. */
+/** Returns every batch row, used by cleanup routines.
+ * @returns All batch rows.
+ */
 export function allBatchRows(): BatchRow[] {
   return db.query<BatchRow, []>("SELECT * FROM batches").all();
 }

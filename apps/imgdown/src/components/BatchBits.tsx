@@ -1,7 +1,11 @@
 import type { BatchDTO, BatchItemDTO } from "@imgdown/shared";
 import { FORMAT_NAMES, formatBytes, formatDimensions, savedPercent } from "@imgdown/shared";
 
-/** Vietnamese label for a batch status. */
+/**
+ * Vietnamese label for a batch status.
+ * @param status - Batch status.
+ * @returns The rendered React element.
+ */
 export function batchStatusLabel(status: string): string {
   switch (status) {
     case "queued":
@@ -17,7 +21,11 @@ export function batchStatusLabel(status: string): string {
   }
 }
 
-/** Tailwind classes for a batch status badge. */
+/**
+ * Tailwind classes for a batch status badge.
+ * @param status - Batch status.
+ * @returns The rendered React element.
+ */
 export function batchStatusClass(status: string): string {
   if (status === "done") return "border-emerald-200 bg-emerald-50 text-emerald-600";
   if (status === "partial") return "border-amber-200 bg-amber-50 text-amber-600";
@@ -25,7 +33,12 @@ export function batchStatusClass(status: string): string {
   return "border-indigo-200 bg-indigo-50 text-indigo-600";
 }
 
-/** Renders a compact status badge for a batch. */
+/**
+ * Renders a compact status badge for a batch.
+ * @param root0 - Component props.
+ * @param root0.batch - Batch summary.
+ * @returns The rendered React element.
+ */
 export function BatchStatusBadge({ batch }: { batch: BatchDTO }) {
   return (
     <span
@@ -41,7 +54,12 @@ export function BatchStatusBadge({ batch }: { batch: BatchDTO }) {
   );
 }
 
-/** Renders a single processed item row summary. */
+/**
+ * Renders a single processed item row summary.
+ * @param root0 - Component props.
+ * @param root0.item - Processed item.
+ * @returns The rendered React element.
+ */
 export function ItemMeta({ item }: { item: BatchItemDTO }) {
   const percent = savedPercent(item.inputBytes, item.outputBytes);
   return (
