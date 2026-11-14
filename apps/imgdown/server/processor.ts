@@ -1,6 +1,6 @@
 import { unlink } from "node:fs/promises";
 import { join } from "node:path";
-import type { Settings } from "@imgdown/shared";
+import { stripControlChars, type Settings } from "@imgdown/shared";
 import {
   THUMB_DIR,
   ZIP_DIR,
@@ -10,13 +10,12 @@ import {
   updateBatch,
   updateItem,
 } from "@imgdown/db";
-import { compressImage, formatError, getCapabilities, writeThumbnail } from "@imgdown/media";
-import { ZipWriter } from "@imgdown/media";
+import { ZipWriter, compressImage, formatError, getCapabilities, writeThumbnail } from "@imgdown/media";
 
 const CONCURRENCY = Math.min(4, Math.max(1, Number(process.env.IMAGE_CONCURRENCY) || 1));
 
 function baseName(name: string): string {
-  const cleaned = name.replaceAll(/[\\/]/gu, "-").replaceAll(/[\u0000-\u001F]/gu, "").trim();
+  const cleaned = stripControlChars(name).replaceAll(/[\\/]/gu, "-").trim();
   const withoutExt = cleaned.replace(/\.[a-z0-9]{1,8}$/i, "");
   return (withoutExt || "anh").slice(0, 120) || "anh";
 }
@@ -33,7 +32,10 @@ function uniqueName(used: Set<string>, name: string, suffix: string, ext: string
   return candidate;
 }
 
-/** Processes a queued batch, writes the ZIP and updates progress in SQLite. */
+/**
+ * Processes a queued batch, writes the ZIP and updates progress in SQLite.
+ * @param batchId - Batch identifier.
+ */
 export async function processBatch(batchId: string): Promise<void> {
   const batch = getBatchRow(batchId);
   if (!batch) return;

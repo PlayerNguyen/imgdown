@@ -19,7 +19,7 @@ Run all of these before considering a task complete:
 
 ```bash
 bun check          # Bun's TypeScript 7 checker (do not use tsc)
-bun run lint       # oxlint strict, warnings are failures
+bun run lint       # oxlint + ESLint JSDoc gate (errors fail, warnings reported)
 bun test           # bun:test unit tests
 bun run dup        # jscpd duplication threshold < 1.5%
 bun run build      # Bun client bundle + Tailwind CSS
@@ -29,11 +29,16 @@ Do not use `tsc --noEmit`.
 
 ## Hard rules
 
-- **Every exported function must have a JSDoc block**, including React components and test helpers.
+- **Every exported function must have an English JSDoc block with a description, `@param` and `@returns`.** This includes React components and public class methods.
   ```ts
-  /** Loads one batch and its items. */
+  /**
+   * Loads one batch and its items.
+   * @param id - Batch identifier.
+   * @returns The batch DTO, or `null` when it does not exist.
+   */
   export function getBatch(id: string): BatchDTO | null { ... }
   ```
+  Oxlint 1.93 implements most JSDoc rules; `jsdoc/require-jsdoc`, `require-description` and `check-param-names` are enforced through the ESLint JSDoc gate in `eslint.config.mjs` because Oxlint does not ship them yet.
 - No `any`. Prefer `unknown` and narrowing.
 - Keep strict TypeScript; do not weaken `tsconfig.json`.
 - Use Bun APIs (`Bun.serve`, `Bun.file`, `Bun.Image`, `bun:sqlite`, `bun:test`).

@@ -23,7 +23,9 @@ export async function buildClient(): Promise<void> {
   }
 }
 
-/** Builds the client bundle only when it is missing (or in development). */
+/** Builds the client bundle only when it is missing (or in development).
+ * @returns Bundle modification timestamp in milliseconds.
+ */
 export async function ensureClientBuild(): Promise<number> {
   const bundle = Bun.file("./public/app.js");
   if (production && (await bundle.exists())) {
@@ -36,5 +38,5 @@ export async function ensureClientBuild(): Promise<number> {
 if (import.meta.main) {
   const started = performance.now();
   await buildClient();
-  console.log(`✓ client bundle → public/app.js (${Math.round(performance.now() - started)}ms)`);
+  process.stdout.write(`✓ client bundle → public/app.js (${Math.round(performance.now() - started)}ms)\n`);
 }

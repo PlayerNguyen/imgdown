@@ -15,7 +15,12 @@ function chunk(type: string, data: Uint8Array): Uint8Array {
   return out;
 }
 
-/** Generates a deterministic gradient PNG for pipeline tests. */
+/**
+ * Generates a deterministic gradient PNG for pipeline tests.
+ * @param width - Image width in pixels.
+ * @param height - Image height in pixels.
+ * @returns The generated PNG bytes.
+ */
 export function makePng(width: number, height: number): Uint8Array {
   const rowLength = width * 3 + 1;
   const raw = new Uint8Array(rowLength * height);
@@ -53,7 +58,12 @@ export function makePng(width: number, height: number): Uint8Array {
   return png;
 }
 
-/** Finds and returns a numeric IFD0 tag value from a TIFF/EXIF block. */
+/**
+ * Finds and returns a numeric IFD0 tag value from a TIFF/EXIF block.
+ * @param tiff - EXIF TIFF block.
+ * @param tag - EXIF tag identifier.
+ * @returns The numeric tag value, or `null` when absent.
+ */
 export function readIfdTag(tiff: Uint8Array, tag: number): number | null {
   if (tiff.length < 8) return null;
   const little = tiff[0] === 0x49;
@@ -71,7 +81,12 @@ export function readIfdTag(tiff: Uint8Array, tag: number): number | null {
   return null;
 }
 
-/** Checks whether a byte sequence contains an ASCII needle. */
+/**
+ * Checks whether a byte sequence contains an ASCII needle.
+ * @param bytes - Byte sequence.
+ * @param needle - ASCII string to search for.
+ * @returns `true` when the needle is present.
+ */
 export function containsAscii(bytes: Uint8Array, needle: string): boolean {
   const target = new TextEncoder().encode(needle);
   outer: for (let i = 0; i <= bytes.length - target.length; i++) {

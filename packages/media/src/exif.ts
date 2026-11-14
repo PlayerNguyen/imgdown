@@ -133,7 +133,12 @@ export type ExifPatchOptions = {
   height?: number;
 };
 
-/** Rewrites orientation to 1, refreshes dimensions and optionally removes GPS. */
+/**
+ * Rewrites orientation to 1, refreshes dimensions and optionally removes GPS.
+ * @param tiffInput - Source EXIF TIFF block.
+ * @param options - EXIF patch options.
+ * @returns The patched EXIF TIFF bytes.
+ */
 export function patchExif(tiffInput: Uint8Array, options: ExifPatchOptions): Uint8Array {
   const tiff = tiffInput.slice();
   const info = tiffInfo(tiff);
@@ -270,7 +275,12 @@ function extractWebp(data: Uint8Array): Uint8Array | null {
   return null;
 }
 
-/** Returns a TIFF/EXIF block (without the "Exif\0\0" prefix) for JPEG, PNG or WebP input. */
+/**
+ * Returns a TIFF/EXIF block (without the "Exif\0\0" prefix) for JPEG, PNG or WebP input.
+ * @param data - Decoded image or binary bytes.
+ * @param format - Output format.
+ * @returns The EXIF TIFF block, or `null` when absent.
+ */
 export function extractExif(data: Uint8Array, format: string): Uint8Array | null {
   switch (format.toLowerCase()) {
     case "jpeg":
@@ -475,7 +485,13 @@ function injectWebp(webp: Uint8Array, tiff: Uint8Array): Uint8Array {
   return out;
 }
 
-/** Embeds a TIFF/EXIF block into an encoded JPEG, WebP or PNG. */
+/**
+ * Embeds a TIFF/EXIF block into an encoded JPEG, WebP or PNG.
+ * @param encoded - Encoded image bytes.
+ * @param tiff - EXIF TIFF block.
+ * @param format - Output format.
+ * @returns The encoded image with EXIF embedded.
+ */
 export function injectExif(encoded: Uint8Array, tiff: Uint8Array, format: string): Uint8Array {
   switch (format.toLowerCase()) {
     case "jpeg":

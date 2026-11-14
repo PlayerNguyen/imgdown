@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "engines": {
     "bun": ">=1.4.0"
   },
@@ -12,12 +15,18 @@
     "build": "bun --filter @imgdown/app build",
     "start": "bun --filter @imgdown/app start",
     "typecheck": "bun check",
-    "lint": "oxlint --deny-warnings apps packages",
+    "lint": "oxlint apps packages && eslint apps packages",
     "test": "bun test",
     "dup": "jscpd --config .jscpd.json"
   },
   "devDependencies": {
+    "@babel/core": "^8.1.2",
+    "@babel/eslint-parser": "^8.1.2",
+    "@babel/preset-react": "^8.0.1",
+    "@babel/preset-typescript": "^8.0.7",
     "@types/bun": "^1.4.4",
+    "eslint": "^10.15.0",
+    "eslint-plugin-jsdoc": "^65.4.7",
     "jscpd": "^5.4.3",
     "oxlint": "^1.93.0",
     "typescript": "^7.0.2"

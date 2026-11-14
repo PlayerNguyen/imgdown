@@ -11,7 +11,15 @@ function num(value: string): number {
   return Number.isFinite(parsed) ? Math.min(12000, Math.max(0, parsed)) : 0;
 }
 
-/** Output settings card with format, quality, resize, EXIF and filename controls. */
+/**
+ * Output settings card with format, quality, resize, EXIF and filename controls.
+ * @param root0 - Component props.
+ * @param root0.settings - Compression settings.
+ * @param root0.onChange - Settings change callback.
+ * @param root0.capabilities - Encoder capabilities for this host.
+ * @param root0.disabled - Whether controls are disabled.
+ * @returns The rendered React element.
+ */
 export function SettingsPanel({
   settings,
   onChange,
@@ -47,15 +55,14 @@ export function SettingsPanel({
             <span className="field-label">Định dạng</span>
             <span className="field-value">{FORMAT_NAMES[settings.format]}</span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Định dạng đầu ra">
+          <div className="grid grid-cols-3 gap-1.5" aria-label="Định dạng đầu ra">
             {FORMATS.map((format) => {
               const blocked = unavailable(format);
               return (
                 <button
                   key={format}
                   type="button"
-                  role="radio"
-                  aria-checked={settings.format === format}
+                  aria-pressed={settings.format === format}
                   disabled={blocked}
                   title={blocked ? "Không được hỗ trợ trên máy chủ này" : FORMAT_HINTS[format]}
                   onClick={() => update({ format })}

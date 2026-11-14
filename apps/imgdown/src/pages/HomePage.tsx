@@ -119,7 +119,12 @@ function BatchItemRow({
   );
 }
 
-/** Home page: drag/drop, batch progress and settings. */
+/**
+ * Home page: drag/drop, batch progress and settings.
+ * @param root0 - Component props.
+ * @param root0.boot - Page boot data.
+ * @returns The rendered React element.
+ */
 export function HomePage({ boot }: { boot: BootData }) {
   const [settings, setSettings] = useState<Settings>(boot.settings);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -565,30 +570,23 @@ export function HomePage({ boot }: { boot: BootData }) {
                     event.target.value = "";
                   }}
                 />
-                <div
-                  className="flex cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-6 py-7 text-center transition hover:border-indigo-400 hover:bg-indigo-50/40 sm:flex-row sm:text-left"
-                  role="button"
-                  tabIndex={0}
+                <button
+                  type="button"
+                  className="flex w-full cursor-pointer flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-6 py-7 text-center transition hover:border-indigo-400 hover:bg-indigo-50/40 sm:flex-row sm:text-left"
                   aria-label="Chọn ảnh hoặc kéo thả vào đây"
                   onClick={() => inputRef.current?.click()}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      inputRef.current?.click();
-                    }
-                  }}
                 >
                   <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600 shadow-lg shadow-indigo-500/10">
                     <UploadIcon size={25} />
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-semibold tracking-tight">Kéo thả ảnh vào đây</h2>
-                    <p className="mt-0.5 text-[13px] text-slate-400">
+                  <span className="block min-w-0 flex-1">
+                    <span className="block text-lg font-semibold tracking-tight">Kéo thả ảnh vào đây</span>
+                    <span className="mt-0.5 block text-[13px] text-slate-400">
                       hoặc <span className="font-semibold text-indigo-600">chọn từ máy</span> · dán bằng{" "}
                       <kbd className="rounded border border-slate-300 px-1 text-[10px]">Ctrl</kbd> +{" "}
                       <kbd className="rounded border border-slate-300 px-1 text-[10px]">V</kbd>
-                    </p>
-                    <div className="mt-2 flex flex-wrap justify-center gap-1 sm:justify-start">
+                    </span>
+                    <span className="mt-2 flex flex-wrap justify-center gap-1 sm:justify-start">
                       {["JPEG", "PNG", "WebP", "GIF", "BMP", "TIFF"].map((format) => (
                         <span
                           key={format}
@@ -597,13 +595,13 @@ export function HomePage({ boot }: { boot: BootData }) {
                           {format}
                         </span>
                       ))}
-                    </div>
-                    <p className="mt-2 text-[11.5px] text-slate-400">
+                    </span>
+                    <span className="mt-2 block text-[11.5px] text-slate-400">
                       Tối đa {boot.limits.maxFiles} ảnh · {boot.limits.maxFileMB} MB/ảnh · tổng{" "}
                       {formatBytes(boot.limits.maxTotalMB * 1024 * 1024)}/lô · {boot.limits.maxPixelsMP} MP
-                    </p>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                </button>
               </section>
 
               {error ? (
@@ -909,10 +907,10 @@ export function HomePage({ boot }: { boot: BootData }) {
       ) : null}
 
       {toast ? (
-        <div className="fixed bottom-5 left-1/2 z-50 flex max-w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[12.5px] font-medium shadow-xl" role="status" aria-live="polite">
+        <output className="fixed bottom-5 left-1/2 z-50 flex max-w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-[12.5px] font-medium shadow-xl" aria-live="polite">
           <AlertIcon size={16} className="shrink-0 text-amber-500" />
           {toast}
-        </div>
+        </output>
       ) : null}
     </Shell>
   );

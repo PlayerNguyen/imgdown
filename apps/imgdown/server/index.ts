@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { AssetDTO, BootData, Settings } from "@imgdown/shared";
+import { stripControlChars, type AssetDTO, type BootData, type Settings } from "@imgdown/shared";
 import { ensureClientBuild } from "../scripts/build";
 import {
   THUMB_DIR,
@@ -16,6 +16,8 @@ import {
   listBatches,
   markStaleBatchesFailed,
   saveSettings,
+  cleanupExpired,
+  deleteBatchFiles,
 } from "@imgdown/db";
 import {
   ImageValidationError,
@@ -23,13 +25,14 @@ import {
   MAX_TOTAL_BYTES,
   formatError,
   getCapabilities,
+  assertFormatAvailable,
+  normalizeSettings,
   inspectImage,
   writeThumbnail,
+  ValidationError,
 } from "@imgdown/media";
 import { processBatch } from "./processor";
-import { assertFormatAvailable, normalizeSettings, ValidationError } from "@imgdown/media";
 import { renderDocument, renderNotFound } from "./ssr";
-import { cleanupExpired, deleteBatchFiles } from "@imgdown/db";
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST ?? "0.0.0.0";
@@ -41,7 +44,7 @@ await ensureClientBuild();
 markStaleBatchesFailed();
 void cleanupExpired(LIMITS.retentionDays)
   .then(({ batches, assets }) => {
-    if (batches || assets) console.log(`[cleanup] đã dọn ${batches} lô, ${assets} ảnh hết hạn`);
+    if (batches || assets) process.stdout.write(`[cleanup] đã dọn ${batches} lô, ${assets} ảnh hết hạn\n`);
     return undefined;
   })
   .catch((error) => console.warn("[cleanup] lỗi dọn dữ liệu:", error));
@@ -112,9 +115,8 @@ function renderBatchPage(id: string): Response {
 
 function cleanFileName(name: string): string {
   return (
-    (name || "anh")
+    stripControlChars(name || "anh")
       .replaceAll(/[\\/]/gu, "-")
-      .replaceAll(/[\u0000-\u001F]/gu, "")
       .trim()
       .slice(0, 180) || "anh"
   );
@@ -400,5 +402,5 @@ const server = Bun.serve({
   },
 });
 
-console.log(`\n  ImgDown đang chạy tại http://localhost:${server.port}`);
-console.log(`  Bun ${Bun.version} · AVIF ${capabilities.avif ? "✓" : "✗"} · HEIC ${capabilities.heic ? "✓" : "✗"}`);
+process.stdout.write(`\n  ImgDown đang chạy tại http://localhost:${server.port}\n`);
+process.stdout.write(`  Bun ${Bun.version} · AVIF ${capabilities.avif ? "✓" : "✗"} · HEIC ${capabilities.heic ? "✓" : "✗"}\n`);
