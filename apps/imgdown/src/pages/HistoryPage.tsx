@@ -3,7 +3,7 @@ import type { BatchDTO, BootData } from "@imgdown/shared";
 import { Shell } from "../components/Shell";
 import { BatchStatusBadge } from "../components/BatchBits";
 import { AlertIcon, DownloadIcon, HistoryIcon, SpinnerIcon, TrashIcon, ZipIcon } from "../components/Icons";
-import { formatBytes, formatDate, formatNumber, savedPercent, settingsSummary } from "@imgdown/shared";
+import { formatBytes, formatDate, formatNumber, savedPercent, settingsSummary } from "../lib/format";
 import { api, errorMessage } from "../lib/client-api";
 import { useI18n } from "../lib/i18n";
 

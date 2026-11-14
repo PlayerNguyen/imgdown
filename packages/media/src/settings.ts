@@ -13,18 +13,6 @@ export const DEFAULT_SETTINGS: Settings = {
   keepLocation: false,
 };
 
-/** Error thrown when input settings are invalid. */
-export class ValidationError extends Error {
-  /**
-   * Creates a validation error with a user-facing message.
-   * @param message - Human-readable error message.
-   */
-  constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
-
 function toInt(value: unknown, fallback: number): number {
   const n = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
   if (!Number.isFinite(n)) return fallback;
@@ -92,24 +80,6 @@ export function normalizeSettings(input: unknown): Settings {
   };
 }
 
-/**
- * Throws when the requested AVIF/HEIC encoder is missing on this host.
- * @param settings - Compression settings.
- * @param capabilities - Encoder capabilities for this host.
- */
-export function assertFormatAvailable(settings: Settings, capabilities: Capabilities): void {
-  if (settings.format === "avif" && !capabilities.avif) {
-    throw new ValidationError(
-      "AVIF is not supported on this server (it needs the OS AV1 codec). Choose WebP, JPEG or PNG.",
-    );
-  }
-  if (settings.format === "heic" && !capabilities.heic) {
-    throw new ValidationError(
-      "HEIC is not supported on this server (it needs the OS HEIC codec). Choose WebP, JPEG or PNG.",
-    );
-  }
-}
-
 export type ResolvedFormat = "jpeg" | "png" | "webp" | "avif" | "heic";
 
 /**
@@ -153,11 +123,3 @@ const EXT_BY_FORMAT: Record<ResolvedFormat, string> = {
 export function extensionFor(format: ResolvedFormat): string {
   return EXT_BY_FORMAT[format];
 }
-
-export const FORMAT_LABELS: Record<ResolvedFormat, string> = {
-  jpeg: "JPEG",
-  png: "PNG",
-  webp: "WebP",
-  avif: "AVIF",
-  heic: "HEIC",
-};

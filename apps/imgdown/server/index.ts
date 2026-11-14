@@ -1,15 +1,6 @@
 import { join } from "node:path";
-import {
-  DEFAULT_LOCALE,
-  LOCALE_COOKIE,
-  isLocale,
-  stripControlChars,
-  translate,
-  type AssetDTO,
-  type BootData,
-  type Locale,
-  type Settings,
-} from "@imgdown/shared";
+import { stripControlChars, type AssetDTO, type BootData, type Locale, type Settings } from "@imgdown/shared";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, translate } from "../src/lib/messages";
 import { ensureClientBuild } from "../scripts/build";
 import {
   THUMB_DIR,
@@ -30,17 +21,14 @@ import {
   deleteBatchFiles,
 } from "@imgdown/db";
 import {
-  ImageValidationError,
   LIMITS,
   MAX_TOTAL_BYTES,
-  formatError,
   getCapabilities,
-  assertFormatAvailable,
   normalizeSettings,
   inspectImage,
   writeThumbnail,
-  ValidationError,
 } from "@imgdown/media";
+import { imageErrorMessage } from "./i18n";
 import { processBatch } from "./processor";
 import { renderDocument, renderNotFound } from "./ssr";
 
@@ -48,6 +36,8 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST ?? "0.0.0.0";
 const MAX_FILE_BYTES = LIMITS.maxFileMB * 1024 * 1024;
 const ASSET_VERSION = Date.now().toString(36);
+
+class UploadError extends Error {}
 const FALLBACK_LOCALE: Locale = isLocale(process.env.DEFAULT_LOCALE)
   ? process.env.DEFAULT_LOCALE
   : DEFAULT_LOCALE;
@@ -68,7 +58,7 @@ function requestLocale(request: Request): Locale {
 
 const capabilities = await getCapabilities();
 await ensureClientBuild();
-markStaleBatchesFailed();
+markStaleBatchesFailed(translate(FALLBACK_LOCALE, "batch.stale"));
 void cleanupExpired(LIMITS.retentionDays)
   .then(({ batches, assets }) => {
     if (batches || assets) {
@@ -173,9 +163,9 @@ async function handleUpload(request: Request, locale: Locale): Promise<Response>
     const displayName = cleanFileName(file.name);
     try {
       if (file.size > MAX_FILE_BYTES) {
-        throw new ValidationError(translate(locale, "api.fileTooLarge", { max: LIMITS.maxFileMB }));
+        throw new UploadError(translate(locale, "api.fileTooLarge", { max: LIMITS.maxFileMB }));
       }
-      if (file.size === 0) throw new ValidationError(translate(locale, "api.emptyFile"));
+      if (file.size === 0) throw new UploadError(translate(locale, "api.emptyFile"));
 
       const bytes = new Uint8Array(await file.arrayBuffer());
       const meta = await inspectImage(bytes);
@@ -216,10 +206,7 @@ async function handleUpload(request: Request, locale: Locale): Promise<Response>
     } catch (error) {
       errors.push({
         name: displayName,
-        error:
-          error instanceof ValidationError || error instanceof ImageValidationError
-            ? error.message
-            : formatError(error),
+        error: error instanceof UploadError ? error.message : imageErrorMessage(error, locale),
       });
     }
   }
@@ -245,15 +232,11 @@ async function createBatchFromRequest(request: Request, locale: Locale): Promise
   }
 
   const settings = normalizeSettings(body.settings);
-  try {
-    assertFormatAvailable(settings, capabilities);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return badRequest(
-        translate(locale, settings.format === "avif" ? "api.avifUnavailable" : "api.heicUnavailable"),
-      );
-    }
-    throw error;
+  if (settings.format === "avif" && !capabilities.avif) {
+    return badRequest(translate(locale, "api.avifUnavailable"));
+  }
+  if (settings.format === "heic" && !capabilities.heic) {
+    return badRequest(translate(locale, "api.heicUnavailable"));
   }
 
   const found = new Map(getAssets(assetIds).map((asset) => [asset.id, asset]));
@@ -281,7 +264,7 @@ async function createBatchFromRequest(request: Request, locale: Locale): Promise
 
   createBatch({ id: batchId, settings, items });
   const batch = getBatch(batchId)!;
-  void processBatch(batchId);
+  void processBatch(batchId, locale);
   return json({ batch }, 201);
 }
 

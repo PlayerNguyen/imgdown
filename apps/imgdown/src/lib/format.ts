@@ -1,5 +1,5 @@
-import type { BatchDTO, Settings } from "./types";
-import { DEFAULT_LOCALE, translate, type Locale, type MessageKey } from "./i18n";
+import type { BatchDTO, Settings } from "@imgdown/shared";
+import { DEFAULT_LOCALE, translate, type Locale, type MessageKey } from "./messages";
 
 const TIME_ZONES: Record<Locale, string> = { en: "UTC", vi: "Asia/Ho_Chi_Minh" };
 const INTL_LOCALES: Record<Locale, string> = { en: "en-US", vi: "vi-VN" };

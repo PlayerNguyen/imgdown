@@ -10,7 +10,7 @@ import {
   formatName,
   savedPercent,
   settingsSummary,
-} from "@imgdown/shared";
+} from "../lib/format";
 import { api, errorMessage } from "../lib/client-api";
 import { useI18n } from "../lib/i18n";
 

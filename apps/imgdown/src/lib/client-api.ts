@@ -1,4 +1,5 @@
-import { DEFAULT_LOCALE, translate, type Locale } from "@imgdown/shared";
+import type { Locale } from "@imgdown/shared";
+import { DEFAULT_LOCALE, translate } from "./messages";
 
 /**
  * Sends a JSON request and throws a readable Error when the API fails.

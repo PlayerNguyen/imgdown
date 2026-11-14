@@ -1,5 +1,6 @@
 import type { BatchDTO, BatchItemDTO, Locale } from "@imgdown/shared";
-import { formatBytes, formatDimensions, formatName, savedPercent, translate } from "@imgdown/shared";
+import { formatBytes, formatDimensions, formatName, savedPercent } from "../lib/format";
+import { translate } from "../lib/messages";
 import { useI18n } from "../lib/i18n";
 
 /**

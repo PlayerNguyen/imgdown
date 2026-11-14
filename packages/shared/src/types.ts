@@ -1,4 +1,4 @@
-import type { Locale } from "./i18n";
+export type Locale = "en" | "vi";
 
 export const OUTPUT_FORMATS = ["auto", "webp", "jpeg", "png", "original", "avif", "heic"] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
@@ -34,7 +34,6 @@ export type Settings = {
 export type Capabilities = {
   avif: boolean;
   heic: boolean;
-  note: string | null;
 };
 
 export type Limits = {

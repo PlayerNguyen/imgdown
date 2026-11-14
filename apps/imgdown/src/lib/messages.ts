@@ -1,6 +1,8 @@
-export const LOCALES = ["en", "vi"] as const;
+import type { Locale } from "@imgdown/shared";
 
-export type Locale = (typeof LOCALES)[number];
+export type { Locale } from "@imgdown/shared";
+
+export const LOCALES: readonly Locale[] = ["en", "vi"];
 
 /** Locale used whenever the visitor has not picked one yet. */
 export const DEFAULT_LOCALE: Locale = "en";
@@ -235,6 +237,12 @@ const en = {
   "page.notFoundCta": "Back to image compression",
   "page.serverError": "The server hit an error while rendering the page.",
 
+  "image.tooManyPixels": "Image exceeds the {max} megapixel limit. Downscale it before uploading.",
+  "image.formatUnsupported": "This image format is not supported on the server.",
+  "image.invalid": "This file could not be read as a valid image (JPEG, PNG, WebP, GIF, BMP, TIFF are supported).",
+  "image.decodeFailed": "The image is corrupted or could not be decoded.",
+  "image.generic": "This image could not be processed.",
+  "batch.stale": "The server restarted while this batch was processing. Please try again.",
   "api.uploadUnreadable": "Could not read the upload.",
   "api.noFiles": "No images were selected.",
   "api.tooManyFiles": "You can upload at most 10 images at a time.",
@@ -488,6 +496,12 @@ const vi: Messages = {
   "page.notFoundCta": "Về trang nén ảnh",
   "page.serverError": "Máy chủ gặp lỗi khi hiển thị trang.",
 
+  "image.tooManyPixels": "Ảnh vượt giới hạn {max} megapixel. Hãy thu nhỏ ảnh trước khi tải lên.",
+  "image.formatUnsupported": "Định dạng ảnh này chưa được hỗ trợ trên máy chủ.",
+  "image.invalid": "Không đọc được tệp này như một ảnh hợp lệ (hỗ trợ JPEG, PNG, WebP, GIF, BMP, TIFF).",
+  "image.decodeFailed": "Ảnh bị lỗi hoặc không đọc được dữ liệu.",
+  "image.generic": "Không xử lý được ảnh này.",
+  "batch.stale": "Máy chủ đã khởi động lại khi lô ảnh đang xử lý. Vui lòng thử lại.",
   "api.uploadUnreadable": "Không đọc được dữ liệu tải lên.",
   "api.noFiles": "Chưa chọn ảnh nào.",
   "api.tooManyFiles": "Mỗi lần chỉ tải lên tối đa 10 ảnh.",
