@@ -55,6 +55,7 @@ Do not use `tsc --noEmit`.
 
 - Vietnamese labels, friendly tone, accessible focus states, `aria-label` on icon-only buttons.
 - Reuse `Shell`, `SettingsPanel`, `BatchStatusBadge`, `ItemMeta` and shared formatters; do not duplicate status label maps.
+- Use `react-icons/lu` via the wrappers in `src/components/Icons.tsx`; the gradient `LogoMark` brand asset stays custom.
 - Keep drag/drop, paste, keyboard and mobile flows working.
 - Use Tailwind utilities for layout, custom classes only for repeated component styling.
 
