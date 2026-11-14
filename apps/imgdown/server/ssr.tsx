@@ -34,9 +34,8 @@ export function renderDocument(boot: BootData, version: string): string {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${title}</title>
     <meta name="description" content="${description}" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#edf1f8" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/static/styles.css?v=${version}" />
     <script>window.__BOOT__ = ${safeJson(boot)};</script>

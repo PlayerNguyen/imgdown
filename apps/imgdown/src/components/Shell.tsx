@@ -14,7 +14,7 @@ export function Shell({
 }) {
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-[#f6f7fb]/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-[#edf1f8]/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-[1180px] items-center gap-4 px-5">
           <a className="mr-auto flex items-center gap-2.5" href="/" aria-label="ImgDown — trang chủ">
             <LogoMark size={34} />
@@ -28,7 +28,7 @@ export function Shell({
             </span>
           </a>
 
-          <nav className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 p-1" aria-label="Điều hướng chính">
+          <nav className="flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 p-1" aria-label="Điều hướng chính">
             <a
               href="/"
               className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition ${
@@ -62,7 +62,7 @@ export function Shell({
 
       <main className="mx-auto min-h-[calc(100vh-13rem)] w-full max-w-[1180px] px-5 py-7">{children}</main>
 
-      <footer className="border-t border-slate-200 bg-white/40">
+      <footer className="border-t border-slate-200 bg-white/50">
         <div className="mx-auto flex max-w-[1180px] flex-col gap-3 px-5 py-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Xử lý cục bộ bằng <strong className="font-semibold text-slate-600">Bun.Image</strong>. Ảnh và ZIP tự
