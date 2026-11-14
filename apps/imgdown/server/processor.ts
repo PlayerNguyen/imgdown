@@ -17,7 +17,7 @@ const CONCURRENCY = Math.min(4, Math.max(1, Number(process.env.IMAGE_CONCURRENCY
 function baseName(name: string): string {
   const cleaned = stripControlChars(name).replaceAll(/[\\/]/gu, "-").trim();
   const withoutExt = cleaned.replace(/\.[a-z0-9]{1,8}$/i, "");
-  return (withoutExt || "anh").slice(0, 120) || "anh";
+  return (withoutExt || "image").slice(0, 120) || "image";
 }
 
 function uniqueName(used: Set<string>, name: string, suffix: string, ext: string): string {
@@ -68,9 +68,9 @@ export async function processBatch(batchId: string): Promise<void> {
         updateItem(item.id, { status: "processing" });
 
         try {
-          if (!item.assetId) throw new Error("Không tìm thấy ảnh gốc đã tải lên.");
+          if (!item.assetId) throw new Error("The uploaded original image could not be found.");
           const asset = getAsset(item.assetId);
-          if (!asset) throw new Error("Ảnh gốc đã bị xoá khỏi máy chủ.");
+          if (!asset) throw new Error("The original image has been removed from the server.");
 
           const data = new Uint8Array(await Bun.file(asset.stored_path).arrayBuffer());
           const result = await compressImage(
@@ -87,7 +87,7 @@ export async function processBatch(batchId: string): Promise<void> {
           const hasThumb = await writeThumbnail(result.bytes, thumbPath)
             .then(() => true)
             .catch((error) => {
-              console.warn(`[processor] không tạo được thumbnail cho ${item.name}:`, error);
+              console.warn(`[processor] thumbnail failed for ${item.name}:`, error);
               return false;
             });
 
@@ -125,7 +125,7 @@ export async function processBatch(batchId: string): Promise<void> {
       await unlink(zipPath).catch(() => {});
       updateBatch(batchId, {
         status: "error",
-        error: firstError ? `Không nén được ảnh nào: ${firstError}` : "Không nén được ảnh nào.",
+        error: firstError ? `No images could be compressed: ${firstError}` : "No images could be compressed.",
         finishedAt: Date.now(),
         totalOutput: 0,
       });
@@ -138,11 +138,11 @@ export async function processBatch(batchId: string): Promise<void> {
       totalOutput,
       zipPath,
       zipBytes,
-      error: failed > 0 ? `${failed} ảnh không nén được.` : null,
+      error: failed > 0 ? `${failed} images could not be compressed.` : null,
       finishedAt: Date.now(),
     });
   } catch (error) {
-    console.error(`[processor] lô ${batchId} thất bại:`, error);
+    console.error(`[processor] batch ${batchId} failed:`, error);
     try {
       await zip?.close();
     } catch {
@@ -151,7 +151,7 @@ export async function processBatch(batchId: string): Promise<void> {
     await unlink(zipPath).catch(() => {});
     updateBatch(batchId, {
       status: "error",
-      error: "Máy chủ gặp lỗi khi tạo tệp ZIP. Vui lòng thử lại.",
+      error: "The server failed to create the ZIP file. Please try again.",
       finishedAt: Date.now(),
     });
   }

@@ -51,7 +51,7 @@ async function detectCapabilities(): Promise<Capabilities> {
     note:
       avif || heic
         ? null
-        : "Máy chủ này không có codec hệ thống cho AVIF/HEIC nên hai định dạng đó bị tắt. WebP, JPEG và PNG luôn sẵn sàng.",
+        : "This server has no system codecs for AVIF/HEIC, so those two formats are disabled. WebP, JPEG and PNG are always available.",
   };
 }
 
@@ -98,14 +98,14 @@ export async function inspectImage(data: Uint8Array): Promise<ImageMeta> {
     const code = (error as { code?: string }).code;
     if (code === "ERR_IMAGE_MAX_PIXELS") {
       throw new ImageValidationError(
-        `Ảnh vượt giới hạn ${MAX_PIXELS_MP} megapixel. Hãy thu nhỏ ảnh trước khi tải lên.`,
+        `Image exceeds the ${MAX_PIXELS_MP} megapixel limit. Downscale it before uploading.`,
       );
     }
     if (code === "ERR_IMAGE_FORMAT_UNSUPPORTED") {
-      throw new ImageValidationError("Định dạng ảnh này chưa được hỗ trợ trên máy chủ.");
+      throw new ImageValidationError("This image format is not supported on the server.");
     }
     throw new ImageValidationError(
-      "Không đọc được tệp này như một ảnh hợp lệ (hỗ trợ JPEG, PNG, WebP, GIF, BMP, TIFF).",
+      "This file could not be read as a valid image (JPEG, PNG, WebP, GIF, BMP, TIFF are supported).",
     );
   }
 }
@@ -260,15 +260,15 @@ export async function writeThumbnail(data: Uint8Array, targetPath: string, size 
 }
 
 /**
- * Converts pipeline errors into user-facing Vietnamese messages.
+ * Converts pipeline errors into user-facing messages.
  * @param error - The caught error.
  * @returns A user-facing error message.
  */
 export function formatError(error: unknown): string {
   if (error instanceof ImageValidationError) return error.message;
   const code = (error as { code?: string }).code;
-  if (code === "ERR_IMAGE_FORMAT_UNSUPPORTED") return "Định dạng này không được hỗ trợ trên máy chủ.";
-  if (code === "ERR_IMAGE_DECODE_FAILED") return "Ảnh bị lỗi hoặc không đọc được dữ liệu.";
+  if (code === "ERR_IMAGE_FORMAT_UNSUPPORTED") return "This format is not supported on the server.";
+  if (code === "ERR_IMAGE_DECODE_FAILED") return "The image is corrupt or could not be decoded.";
   if (error instanceof Error && error.message) return error.message;
-  return "Không xử lý được ảnh này.";
+  return "This image could not be processed.";
 }

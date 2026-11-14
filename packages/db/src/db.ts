@@ -592,6 +592,6 @@ export function markStaleBatchesFailed(): void {
   db.run(
     `UPDATE batches SET status = 'error', error = ?, finished_at = ?
      WHERE status IN ('queued', 'processing')`,
-    ["Máy chủ đã khởi động lại khi lô ảnh đang xử lý. Vui lòng thử lại.", Date.now()],
+    ["The server restarted while the batch was processing. Please try again.", Date.now()],
   );
 }

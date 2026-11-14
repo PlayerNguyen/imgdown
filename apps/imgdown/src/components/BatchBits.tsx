@@ -1,23 +1,27 @@
-import type { BatchDTO, BatchItemDTO } from "@imgdown/shared";
-import { FORMAT_NAMES, formatBytes, formatDimensions, savedPercent } from "@imgdown/shared";
+import type { BatchDTO, BatchItemDTO, Locale } from "@imgdown/shared";
+import { formatBytes, formatDimensions, formatName, savedPercent, translate } from "@imgdown/shared";
+import { useI18n } from "../lib/i18n";
 
 /**
- * Vietnamese label for a batch status.
+ * Localized label for a batch status.
  * @param status - Batch status.
- * @returns The rendered React element.
+ * @param locale - Target locale.
+ * @returns The translated status label.
  */
-export function batchStatusLabel(status: string): string {
+export function batchStatusLabel(status: string, locale: Locale): string {
   switch (status) {
     case "queued":
-      return "Đang chờ";
+      return translate(locale, "status.queued");
     case "processing":
-      return "Đang nén";
+      return translate(locale, "status.processing");
     case "partial":
-      return "Một phần";
+      return translate(locale, "status.partial");
     case "error":
-      return "Lỗi";
+      return translate(locale, "status.error");
+    case "pending":
+      return translate(locale, "status.pending");
     default:
-      return "Hoàn tất";
+      return translate(locale, "status.done");
   }
 }
 
@@ -40,6 +44,7 @@ export function batchStatusClass(status: string): string {
  * @returns The rendered React element.
  */
 export function BatchStatusBadge({ batch }: { batch: BatchDTO }) {
+  const { locale } = useI18n();
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${batchStatusClass(
@@ -49,7 +54,7 @@ export function BatchStatusBadge({ batch }: { batch: BatchDTO }) {
       {batch.status === "queued" || batch.status === "processing" ? (
         <span className="size-1.5 animate-pulse rounded-full bg-current" />
       ) : null}
-      {batchStatusLabel(batch.status)}
+      {batchStatusLabel(batch.status, locale)}
     </span>
   );
 }
@@ -61,19 +66,20 @@ export function BatchStatusBadge({ batch }: { batch: BatchDTO }) {
  * @returns The rendered React element.
  */
 export function ItemMeta({ item }: { item: BatchItemDTO }) {
+  const { locale, t } = useI18n();
   const percent = savedPercent(item.inputBytes, item.outputBytes);
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] tabular-nums text-slate-400">
-      <span>{formatBytes(item.inputBytes)}</span>
+      <span>{formatBytes(item.inputBytes, locale)}</span>
       {item.status === "done" ? (
         <>
           <span>→</span>
-          <span className="font-medium text-slate-600">{formatBytes(item.outputBytes)}</span>
+          <span className="font-medium text-slate-600">{formatBytes(item.outputBytes, locale)}</span>
           <span>{formatDimensions(item.outputWidth, item.outputHeight)}</span>
-          <span className="format-tag">{FORMAT_NAMES[item.outputFormat ?? ""] ?? item.outputFormat}</span>
+          <span className="format-tag">{formatName(locale, item.outputFormat ?? "")}</span>
           {percent !== null ? (
             <span className={percent > 0 ? "save-pill" : "rounded-full bg-slate-100 px-2 py-0.5 font-semibold"}>
-              {percent > 0 ? `−${percent}%` : "đã tối ưu"}
+              {percent > 0 ? `−${percent}%` : t("status.optimized")}
             </span>
           ) : null}
         </>
@@ -81,4 +87,3 @@ export function ItemMeta({ item }: { item: BatchItemDTO }) {
     </div>
   );
 }
-

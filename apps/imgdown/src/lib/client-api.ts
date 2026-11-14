@@ -1,10 +1,17 @@
+import { DEFAULT_LOCALE, translate, type Locale } from "@imgdown/shared";
+
 /**
  * Sends a JSON request and throws a readable Error when the API fails.
  * @param url - Request URL.
  * @param init - Fetch options.
+ * @param locale - Locale used for fallback error messages.
  * @returns The parsed JSON response.
  */
-export async function api<T>(url: string, init?: RequestInit): Promise<T> {
+export async function api<T>(
+  url: string,
+  init?: RequestInit,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<T> {
   const response = await fetch(url, {
     ...init,
     headers: {
@@ -14,7 +21,7 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   });
   const data = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
   if (!response.ok) {
-    throw new Error(data?.error ?? `Yêu cầu thất bại (${response.status})`);
+    throw new Error(data?.error ?? translate(locale, "api.requestFailed", { status: response.status }));
   }
   return data as T;
 }
@@ -22,8 +29,11 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
 /**
  * Extracts a human-readable message from an unknown error.
  * @param error - The caught error.
+ * @param locale - Locale used for the generic fallback.
  * @returns A readable error message.
  */
-export function errorMessage(error: unknown): string {
-  return error instanceof Error && error.message ? error.message : "Có lỗi xảy ra, vui lòng thử lại.";
+export function errorMessage(error: unknown, locale: Locale = DEFAULT_LOCALE): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : translate(locale, "api.genericError");
 }

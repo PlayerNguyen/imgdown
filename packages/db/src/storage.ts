@@ -20,7 +20,7 @@ async function removeFile(path: string | null | undefined): Promise<void> {
     await unlink(path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      console.warn(`[storage] không xoá được ${path}:`, error);
+      console.warn(`[storage] could not delete ${path}:`, error);
     }
   }
 }

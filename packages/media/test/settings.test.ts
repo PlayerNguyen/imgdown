@@ -8,7 +8,7 @@ import {
   sanitizeSuffix,
 } from "../src/settings";
 import { LIMITS } from "../src/image";
-import { formatBytes, savedPercent, settingsSummary } from "@imgdown/shared";
+import { formatBytes, parseLocale, savedPercent, settingsSummary, translate } from "@imgdown/shared";
 
 const linuxCaps = { avif: false, heic: false, note: "no system codecs" };
 const macCaps = { avif: true, heic: true, note: null };
@@ -21,14 +21,14 @@ describe("normalizeSettings", () => {
       maxWidth: -20,
       maxHeight: 99999,
       targetKB: 0,
-      suffix: "  Ảnh   nhỏ  ",
+      suffix: "  My   small  ",
     });
     expect(settings.format).toBe("webp");
     expect(settings.quality).toBe(100);
     expect(settings.maxWidth).toBe(0);
     expect(settings.maxHeight).toBe(12000);
     expect(settings.targetKB).toBeNull();
-    expect(settings.suffix).toBe("Ảnh-nhỏ");
+    expect(settings.suffix).toBe("My-small");
   });
 
   test("keeps a leading separator in the suffix", () => {
@@ -87,5 +87,16 @@ describe("limits and formatting", () => {
     expect(savedPercent(1000, 250)).toBe(75);
     expect(settingsSummary({ ...DEFAULT_SETTINGS, keepMetadata: true })).toContain("EXIF");
     expect(settingsSummary({ ...DEFAULT_SETTINGS, keepMetadata: false })).not.toContain("EXIF");
+  });
+
+  test("translates messages and falls back to English", () => {
+    expect(parseLocale("vi")).toBe("vi");
+    expect(parseLocale("fr")).toBe("en");
+    expect(translate("en", "status.done")).toBe("Done");
+    expect(translate("vi", "status.done")).toBe("Hoàn tất");
+    expect(translate("en", "home.compressCta", { count: 3 })).toBe(
+      "Compress 3 images & download ZIP",
+    );
+    expect(translate("en", "history.days", { count: 7 })).toBe("7 days");
   });
 });

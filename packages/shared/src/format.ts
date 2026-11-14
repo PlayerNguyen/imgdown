@@ -1,36 +1,74 @@
 import type { BatchDTO, Settings } from "./types";
+import { DEFAULT_LOCALE, translate, type Locale, type MessageKey } from "./i18n";
 
-const numberFormat = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 });
-const dateFormat = new Intl.DateTimeFormat("vi-VN", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Ho_Chi_Minh",
-});
+const TIME_ZONES: Record<Locale, string> = { en: "UTC", vi: "Asia/Ho_Chi_Minh" };
+const INTL_LOCALES: Record<Locale, string> = { en: "en-US", vi: "vi-VN" };
 
-/**
- * Formats a byte count using Vietnamese units (B, KB, MB, GB).
- * @param bytes - Byte sequence.
- * @returns The formatted size string.
- */
-export function formatBytes(bytes: number | null | undefined): string {
-  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return "—";
-  if (bytes < 1024) return `${Math.round(bytes)} B`;
-  if (bytes < 1024 * 1024) return `${numberFormat.format(bytes / 1024)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${numberFormat.format(bytes / (1024 * 1024))} MB`;
-  return `${numberFormat.format(bytes / (1024 * 1024 * 1024))} GB`;
+const numberFormats = new Map<Locale, Intl.NumberFormat>();
+const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
+
+function getNumberFormat(locale: Locale): Intl.NumberFormat {
+  let formatter = numberFormats.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(INTL_LOCALES[locale], { maximumFractionDigits: 1 });
+    numberFormats.set(locale, formatter);
+  }
+  return formatter;
+}
+
+function getDateFormat(locale: Locale): Intl.DateTimeFormat {
+  let formatter = dateFormats.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(INTL_LOCALES[locale], {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: TIME_ZONES[locale],
+    });
+    dateFormats.set(locale, formatter);
+  }
+  return formatter;
 }
 
 /**
- * Formats a Unix timestamp in the Asia/Ho_Chi_Minh timezone.
+ * Formats a byte count using locale-aware units (B, KB, MB, GB).
+ * @param bytes - Byte sequence.
+ * @param locale - Locale used for the decimal separator.
+ * @returns The formatted size string.
+ */
+export function formatBytes(bytes: number | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return "—";
+  const number = getNumberFormat(locale);
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${number.format(bytes / 1024)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${number.format(bytes / (1024 * 1024))} MB`;
+  return `${number.format(bytes / (1024 * 1024 * 1024))} GB`;
+}
+
+/**
+ * Formats an integer using the grouping rules of a locale.
+ * @param value - Numeric value.
+ * @param locale - Locale used for grouping.
+ * @returns The formatted number.
+ */
+export function formatNumber(value: number, locale: Locale = DEFAULT_LOCALE): string {
+  return getNumberFormat(locale).format(value);
+}
+
+/**
+ * Formats a Unix timestamp in the locale's display timezone.
  * @param timestamp - Unix timestamp in milliseconds.
+ * @param locale - Locale used for the date format and timezone.
  * @returns The formatted date and time.
  */
-export function formatDate(timestamp: number | null | undefined): string {
+export function formatDate(
+  timestamp: number | null | undefined,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   if (!timestamp) return "—";
-  return dateFormat.format(new Date(timestamp));
+  return getDateFormat(locale).format(new Date(timestamp));
 }
 
 /**
@@ -55,48 +93,82 @@ export function formatDimensions(width: number | null, height: number | null): s
   return `${width} × ${height}`;
 }
 
-export const FORMAT_NAMES: Record<string, string> = {
-  auto: "Tự động",
-  original: "Giữ định dạng",
-  webp: "WebP",
-  jpeg: "JPEG",
-  png: "PNG",
-  avif: "AVIF",
-  heic: "HEIC",
+const FORMAT_NAME_KEYS: Record<string, MessageKey> = {
+  auto: "format.auto",
+  original: "format.original",
+  webp: "format.webp",
+  jpeg: "format.jpeg",
+  png: "format.png",
+  avif: "format.avif",
+  heic: "format.heic",
 };
 
-export const FORMAT_HINTS: Record<string, string> = {
-  auto: "WebP nhỏ nhất",
-  original: "Giữ như gốc",
-  webp: "Nhỏ, có alpha",
-  jpeg: "Không alpha",
-  png: "Sắc nét",
-  avif: "Nhỏ nhất",
-  heic: "Apple",
+const FORMAT_HINT_KEYS: Record<string, MessageKey> = {
+  auto: "format.hint.auto",
+  original: "format.hint.original",
+  webp: "format.hint.webp",
+  jpeg: "format.hint.jpeg",
+  png: "format.hint.png",
+  avif: "format.hint.avif",
+  heic: "format.hint.heic",
 };
+
+/**
+ * Returns the localized display name of an output format.
+ * @param locale - Target locale.
+ * @param format - Output format identifier.
+ * @returns The localized format name.
+ */
+export function formatName(locale: Locale, format: string): string {
+  const key = FORMAT_NAME_KEYS[format];
+  return key ? translate(locale, key) : format.toUpperCase();
+}
+
+/**
+ * Returns the localized short hint for an output format.
+ * @param locale - Target locale.
+ * @param format - Output format identifier.
+ * @returns The localized format hint.
+ */
+export function formatHint(locale: Locale, format: string): string {
+  const key = FORMAT_HINT_KEYS[format];
+  return key ? translate(locale, key) : "";
+}
 
 /**
  * Builds the short settings summary shown under batch headers.
  * @param settings - Compression settings.
+ * @param locale - Target locale.
  * @param count - Number of images.
  * @returns A compact summary of the selected settings.
  */
-export function settingsSummary(settings: Settings, count = 0): string {
-  const parts: string[] = [FORMAT_NAMES[settings.format] ?? settings.format];
+export function settingsSummary(
+  settings: Settings,
+  locale: Locale = DEFAULT_LOCALE,
+  count = 0,
+): string {
+  const parts: string[] = [formatName(locale, settings.format)];
   if (settings.format !== "original") {
     if (settings.format === "png" && settings.pngPalette) {
       const colors = Math.max(8, Math.min(256, Math.round(16 + (settings.quality / 100) * 240)));
-      parts.push(`palette ${colors} màu`);
+      parts.push(translate(locale, "summary.palette", { count: colors }));
     } else if (settings.format !== "png") {
-      parts.push(`chất lượng ${settings.quality}`);
+      parts.push(translate(locale, "summary.quality", { quality: settings.quality }));
     }
   }
   if (settings.maxWidth > 0 || settings.maxHeight > 0) {
-    parts.push(`tối đa ${settings.maxWidth || "∞"}×${settings.maxHeight || "∞"}`);
+    parts.push(
+      translate(locale, "summary.max", {
+        width: settings.maxWidth || "∞",
+        height: settings.maxHeight || "∞",
+      }),
+    );
   }
-  if (settings.targetKB) parts.push(`mục tiêu ${settings.targetKB} KB`);
-  if (settings.keepMetadata) parts.push(settings.keepLocation ? "EXIF + GPS" : "EXIF");
-  if (count > 0) parts.push(`${count} ảnh`);
+  if (settings.targetKB) parts.push(translate(locale, "summary.target", { kb: settings.targetKB }));
+  if (settings.keepMetadata) {
+    parts.push(translate(locale, settings.keepLocation ? "summary.exifLocation" : "summary.exif"));
+  }
+  if (count > 0) parts.push(translate(locale, "summary.images", { count }));
   return parts.join(" · ");
 }
 

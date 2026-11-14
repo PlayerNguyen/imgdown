@@ -19,7 +19,7 @@ export async function buildClient(): Promise<void> {
 
   if (!result.success) {
     for (const log of result.logs) console.error(log);
-    throw new Error("Không build được client bundle.");
+    throw new Error("Could not build the client bundle.");
   }
 }
 

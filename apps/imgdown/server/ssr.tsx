@@ -1,18 +1,6 @@
 import { renderToString } from "react-dom/server";
 import { App } from "../src/App";
-import type { BootData } from "@imgdown/shared";
-
-const TITLES: Record<BootData["page"], string> = {
-  home: "ImgDown — Nén ảnh hàng loạt thành ZIP",
-  history: "Lịch sử nén — ImgDown",
-  batch: "Chi tiết lô ảnh — ImgDown",
-};
-
-const DESCRIPTIONS: Record<BootData["page"], string> = {
-  home: "Kéo thả ảnh dung lượng cao, nén hàng loạt bằng Bun.Image và tải về một tệp ZIP nhẹ hơn. Tùy chọn WebP, JPEG, PNG và giữ EXIF.",
-  history: "Xem lại các lô ảnh đã nén, tải lại tệp ZIP và quản lý lưu trữ cục bộ.",
-  batch: "Chi tiết từng ảnh trong lô: dung lượng trước và sau, kích thước, định dạng đầu ra.",
-};
+import { translate, type BootData, type Locale } from "@imgdown/shared";
 
 function safeJson(data: unknown): string {
   return JSON.stringify(data)
@@ -29,11 +17,11 @@ function safeJson(data: unknown): string {
  */
 export function renderDocument(boot: BootData, version: string): string {
   const html = renderToString(<App boot={boot} />);
-  const title = TITLES[boot.page];
-  const description = DESCRIPTIONS[boot.page];
+  const title = translate(boot.locale, `meta.${boot.page}.title`);
+  const description = translate(boot.locale, `meta.${boot.page}.description`);
 
   return `<!doctype html>
-<html lang="vi">
+<html lang="${boot.locale}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -54,25 +42,26 @@ export function renderDocument(boot: BootData, version: string): string {
 
 /**
  * Renders the standalone 404 page.
- * @param message - Human-readable message.
+ * @param locale - Locale used for the page copy.
+ * @param message - Optional human-readable message.
  * @returns A standalone 404 HTML document.
  */
-export function renderNotFound(message = "Không tìm thấy trang này."): string {
+export function renderNotFound(locale: Locale, message?: string): string {
   return `<!doctype html>
-<html lang="vi">
+<html lang="${locale}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Không tìm thấy — ImgDown</title>
+    <title>${translate(locale, "page.notFoundTitle")}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <main class="mx-auto flex min-h-screen max-w-3xl flex-col items-start justify-center gap-4 px-6">
       <span class="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold tracking-widest text-indigo-600 uppercase dark:border-indigo-500/40 dark:bg-indigo-500/10 dark:text-indigo-300">404</span>
-      <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">${message}</h1>
-      <p class="text-slate-500 dark:text-slate-400">Trang bạn tìm có thể đã bị xoá hoặc đường dẫn không đúng.</p>
-      <a class="btn btn-primary mt-2" href="/">Về trang nén ảnh</a>
+      <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">${message ?? translate(locale, "page.notFoundDefault")}</h1>
+      <p class="text-slate-500 dark:text-slate-400">${translate(locale, "page.notFoundBody")}</p>
+      <a class="btn btn-primary mt-2" href="/">${translate(locale, "page.notFoundCta")}</a>
     </main>
   </body>
 </html>`;
