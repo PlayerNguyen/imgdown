@@ -19,6 +19,7 @@ A drag-and-drop web app that batch-compresses images and returns **a single ZIP 
 apps/
   imgdown/              # Bun server + React SSR + Tailwind UI
     server/             # Bun.serve, SSR, batch processor
+    desktop/            # Electrobun desktop shell (PoC)
     src/                # React pages/components, client entry, styles.css
     public/             # built bundle + CSS (gitignored)
     scripts/build.ts
@@ -37,6 +38,26 @@ bun install
 bun run dev          # build + server watch, http://localhost:3000
 bun run start        # production: minified build + server
 ```
+
+## Desktop PoC (Electrobun)
+
+`apps/imgdown/desktop/` is an experimental [Electrobun 2.x](https://electrobun.dev) shell. It keeps the existing Bun server in-process: the desktop main process starts `startServer()` on loopback and loads the returned URL in a native window, so SSR, `Bun.Image`, SQLite and ZIP handling keep working without a rewrite.
+
+Prerequisites: Electrobun downloads its pinned Hutch/Bun toolchain on first run. Linux needs the WebKitGTK 4.1 runtime packages; macOS requires 14+; Windows uses WebView2.
+
+```bash
+bun install
+bun run desktop:dev    # build web assets + open the desktop window
+bun run desktop:build  # app bundle in build/, installers in artifacts/
+```
+
+How it works:
+
+- `desktop/bun/index.ts` sets `DATA_DIR` to Electrobun's per-user data directory, resolves the bundled `views/public` assets, calls `startServer({ host: "127.0.0.1", port: 0 })` and opens the local URL.
+- `electrobun.config.ts` copies `public/app.js` and `public/styles.css` into `views/public`.
+- `hutch.config.ts` pins the Electrobun toolchain and provides the install/dev/build tasks.
+
+PoC limitations: there is no save dialog yet (ZIP download behavior depends on the system webview), no single-instance lock or local auth token, no signing/auto-update setup, and drag/drop may need native handling. File picking and paste remain the reliable input paths. AVIF/HEIC still depend on OS codecs. `.hutch/`, `build/` and `artifacts/` are generated and gitignored.
 
 ## Quality checks
 
@@ -68,6 +89,7 @@ All JSDoc is written in English. Oxlint 1.93 supports `require-param`, `require-
 | `PORT` | `3000` | HTTP port |
 | `HOST` | `0.0.0.0` | Bind address |
 | `DATA_DIR` | `./data` | SQLite database, uploads, thumbnails, ZIP files |
+| `PUBLIC_DIR` | `public` | Directory containing the built `app.js` and `styles.css` |
 | `MAX_FILES` | `100` | Maximum images per batch |
 | `MAX_FILE_MB` | `60` | Maximum size per image |
 | `MAX_TOTAL_MB` | `1024` | Maximum total size per batch (1 GB) |

@@ -1,9 +1,12 @@
 node_modules/
 **/node_modules/
 **/data/
+**/.hutch/
 apps/imgdown/public/app.js
 apps/imgdown/public/app.js.map
 apps/imgdown/public/styles.css
+apps/imgdown/build/
+apps/imgdown/artifacts/
 reports/
 *.log
 .DS_Store

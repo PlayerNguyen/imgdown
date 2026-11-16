@@ -1,13 +1,18 @@
 import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 
 const production = process.env.NODE_ENV === "production";
 
-/** Builds the browser client bundle into public/app.js. */
-export async function buildClient(): Promise<void> {
-  await mkdir("public", { recursive: true });
+/**
+ * Builds the browser client bundle.
+ * @param outdir - Directory that receives the generated `app.js`.
+ * @returns A promise that resolves when the bundle has been written.
+ */
+export async function buildClient(outdir = "public"): Promise<void> {
+  await mkdir(outdir, { recursive: true });
   const result = await Bun.build({
     entrypoints: ["./src/client.tsx"],
-    outdir: "./public",
+    outdir,
     naming: "app.js",
     target: "browser",
     minify: production,
@@ -23,15 +28,17 @@ export async function buildClient(): Promise<void> {
   }
 }
 
-/** Builds the client bundle only when it is missing (or in development).
+/**
+ * Builds the client bundle only when it is missing (or in development).
+ * @param publicDir - Directory that receives and serves the client assets.
  * @returns Bundle modification timestamp in milliseconds.
  */
-export async function ensureClientBuild(): Promise<number> {
-  const bundle = Bun.file("./public/app.js");
+export async function ensureClientBuild(publicDir = "public"): Promise<number> {
+  const bundle = Bun.file(join(publicDir, "app.js"));
   if (production && (await bundle.exists())) {
     return (await bundle.stat()).mtimeMs;
   }
-  await buildClient();
+  await buildClient(publicDir);
   return (await bundle.stat()).mtimeMs;
 }
 
