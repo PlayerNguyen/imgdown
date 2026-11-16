@@ -13,7 +13,7 @@ const publicDir = (await Bun.file(join(bundledPublicDir, "app.js")).exists())
 process.env.PUBLIC_DIR = publicDir;
 
 const { startServer } = await import("../../server/app");
-const running = await startServer({ host: "127.0.0.1", port: 0 });
+const running = await startServer({ host: "127.0.0.1", port: 0, buildClient: false });
 
 const mainWindow = new BrowserWindow({
   title: "ImgDown",

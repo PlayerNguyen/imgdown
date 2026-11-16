@@ -14,7 +14,7 @@ process.env.NODE_ENV = "production";
 const { startServer } = await import("../server/app");
 
 test("startServer serves health, SSR and static assets", async () => {
-  const running = await startServer({ host: "127.0.0.1", port: 0, publicDir });
+  const running = await startServer({ host: "127.0.0.1", port: 0, publicDir, buildClient: false });
   try {
     const health = await fetch(`${running.url}/health`);
     expect(health.status).toBe(200);
@@ -31,6 +31,17 @@ test("startServer serves health, SSR and static assets", async () => {
     expect(await asset.text()).toBe("// test bundle\n");
   } finally {
     running.stop();
+  }
+});
+
+test("startServer rejects missing prebuilt assets", async () => {
+  const emptyDir = await mkdtemp(join(tmpdir(), "imgdown-empty-public-"));
+  try {
+    await expect(
+      startServer({ host: "127.0.0.1", port: 0, publicDir: emptyDir, buildClient: false }),
+    ).rejects.toThrow("Client bundle not found");
+  } finally {
+    await rm(emptyDir, { recursive: true, force: true });
   }
 });
 

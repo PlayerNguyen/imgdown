@@ -1,14 +1,13 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const production = process.env.NODE_ENV === "production";
-
 /**
  * Builds the browser client bundle.
  * @param outdir - Directory that receives the generated `app.js`.
  * @returns A promise that resolves when the bundle has been written.
  */
 export async function buildClient(outdir = "public"): Promise<void> {
+  const production = process.env.NODE_ENV === "production";
   await mkdir(outdir, { recursive: true });
   const result = await Bun.build({
     entrypoints: ["./src/client.tsx"],
@@ -35,7 +34,7 @@ export async function buildClient(outdir = "public"): Promise<void> {
  */
 export async function ensureClientBuild(publicDir = "public"): Promise<number> {
   const bundle = Bun.file(join(publicDir, "app.js"));
-  if (production && (await bundle.exists())) {
+  if (process.env.NODE_ENV === "production" && (await bundle.exists())) {
     return (await bundle.stat()).mtimeMs;
   }
   await buildClient(publicDir);

@@ -53,7 +53,8 @@ bun run desktop:build  # app bundle in build/, installers in artifacts/
 
 How it works:
 
-- `desktop/bun/index.ts` sets `DATA_DIR` to Electrobun's per-user data directory, resolves the bundled `views/public` assets, calls `startServer({ host: "127.0.0.1", port: 0 })` and opens the local URL.
+- `desktop/bun/index.ts` sets `DATA_DIR` to Electrobun's per-user data directory, resolves the bundled `views/public` assets, calls `startServer({ host: "127.0.0.1", port: 0, buildClient: false })` and opens the local URL.
+- `desktop:dev` prebuilds the client; the desktop main process never runs `Bun.build`, so bundled apps never try to read source files that are not packaged.
 - `electrobun.config.ts` copies `public/app.js` and `public/styles.css` into `views/public`.
 - `hutch.config.ts` pins the Electrobun toolchain and provides the install/dev/build tasks.
 

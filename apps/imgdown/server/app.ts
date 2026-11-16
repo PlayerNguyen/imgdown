@@ -49,6 +49,8 @@ export type StartServerOptions = {
   host?: string;
   /** Directory containing the built `app.js` and `styles.css` assets. */
   publicDir?: string;
+  /** Build the client bundle when missing. Packaged apps should pass `false`. */
+  buildClient?: boolean;
 };
 
 export type RunningServer = {
@@ -388,7 +390,16 @@ export async function startServer(options: StartServerOptions = {}): Promise<Run
   const publicDir = options.publicDir ?? process.env.PUBLIC_DIR ?? "public";
 
   capabilities = await getCapabilities();
-  await ensureClientBuild(publicDir);
+  if (options.buildClient === false) {
+    const bundle = Bun.file(join(publicDir, "app.js"));
+    if (!(await bundle.exists())) {
+      throw new Error(
+        `Client bundle not found at ${join(publicDir, "app.js")}. Run "bun run build" before starting ImgDown.`,
+      );
+    }
+  } else {
+    await ensureClientBuild(publicDir);
+  }
   markStaleBatchesFailed(translate(FALLBACK_LOCALE, "batch.stale"));
 
   void cleanupExpired(LIMITS.retentionDays)
